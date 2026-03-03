@@ -1,0 +1,148 @@
+{
+  "projectType": "saas",
+  "projectName": "Echo",
+  "projectDescription": "A proactive AI assistant that executes multi-step actions across your connected apps automatically",
+  "theme": "palm",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#6D28D9",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/actions",
+              "concepts/thoughts",
+              "concepts/toolkits",
+              "concepts/triggers"
+            ]
+          },
+          {
+            "group": "Mobile App",
+            "pages": [
+              "mobile/setup",
+              "mobile/onboarding",
+              "mobile/managing-actions",
+              "mobile/managing-thoughts",
+              "mobile/connecting-toolkits",
+              "mobile/settings"
+            ]
+          },
+          {
+            "group": "Backend",
+            "pages": [
+              "backend/setup",
+              "backend/authentication",
+              "backend/database-schema",
+              "backend/integrations"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Profiles",
+            "pages": [
+              "api/profiles/get-profile",
+              "api/profiles/update-profile"
+            ]
+          },
+          {
+            "group": "Actions",
+            "pages": [
+              "api/actions/create-action-log",
+              "api/actions/get-action-logs",
+              "api/actions/get-action-log",
+              "api/actions/update-action-log"
+            ]
+          },
+          {
+            "group": "Thoughts (Items)",
+            "pages": [
+              "api/items/create-item",
+              "api/items/get-items",
+              "api/items/get-item",
+              "api/items/update-item",
+              "api/items/delete-item"
+            ]
+          },
+          {
+            "group": "Toolkits",
+            "pages": [
+              "api/toolkits/list-toolkits",
+              "api/toolkits/get-toolkit",
+              "api/toolkits/enable-toolkit",
+              "api/toolkits/disable-toolkit"
+            ]
+          },
+          {
+            "group": "Triggers",
+            "pages": [
+              "api/triggers/subscribe-trigger",
+              "api/triggers/list-active-triggers",
+              "api/triggers/unsubscribe-trigger"
+            ]
+          },
+          {
+            "group": "Push Notifications",
+            "pages": [
+              "api/push-tokens/register-token",
+              "api/push-tokens/update-token"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Proactive AI assistant that proposes actions automatically",
+    "Multi-step task execution across connected apps",
+    "Toolkit integrations via Composio (Gmail, Calendar, Drive, etc.)",
+    "Long-term memory management with Supermemory",
+    "Push notifications for action proposals",
+    "User-controlled automation posture (ask-first or auto-execute)",
+    "Thoughts system for contextual learning",
+    "Mobile-first React Native experience"
+  ],
+  "publicApiSurface": [
+    "GET /api/profiles",
+    "PUT /api/profiles",
+    "POST /api/action-logs",
+    "GET /api/action-logs",
+    "GET /api/action-logs/:id",
+    "PUT /api/action-logs/:id",
+    "POST /api/items",
+    "GET /api/items",
+    "GET /api/items/:id",
+    "PUT /api/items/:id",
+    "DELETE /api/items/:id",
+    "GET /api/toolkits",
+    "GET /api/toolkits/:slug",
+    "POST /api/toolkits/:slug/enable",
+    "POST /api/toolkits/:slug/disable",
+    "POST /api/triggers/subscribe",
+    "GET /api/triggers/active",
+    "DELETE /api/triggers/:triggerId",
+    "POST /api/push-tokens",
+    "PUT /api/push-tokens/:id"
+  ]
+}
