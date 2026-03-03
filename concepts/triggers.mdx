@@ -203,32 +203,19 @@ See [Settings](/mobile/settings) to configure your automation posture.
 
 ## Managing triggers
 
-### View active triggers
+Triggers are managed automatically by Echo when you connect toolkits. When you connect a toolkit:
 
-```bash
-GET /api/triggers
-```
+1. Echo analyzes the granted OAuth scopes
+2. Automatically enables relevant triggers for those scopes
+3. Registers webhooks with Composio to receive events
 
-Returns all your active trigger subscriptions across all toolkits.
+<Note>
+There is no manual trigger subscription API. Triggers are enabled/disabled automatically based on your connected toolkits and their scopes.
+</Note>
 
-### Subscribe to trigger
-
-```bash
-POST /api/triggers/subscribe
-{
-  "triggerSlug": "gmail_new_email_received",
-  "connectedAccountId": "acc_123",
-  "triggerConfig": { ... }
-}
-```
-
-### Unsubscribe from trigger
-
-```bash
-DELETE /api/triggers/:triggerId
-```
-
-Stops webhook delivery for this trigger.
+To stop receiving triggers from a specific toolkit:
+- Disconnect the toolkit via `/api/toolkits/:id` (DELETE)
+- Or temporarily disable it via `/api/toolkits/:id` (PATCH with `enabled: false`)
 
 ## Trigger rate limits
 
@@ -326,7 +313,7 @@ View webhook delivery logs in the Composio dashboard:
   <Card title="Backend webhooks" icon="webhook" href="/backend/integrations">
     Webhook processing implementation details
   </Card>
-  <Card title="API reference" icon="code" href="/api/triggers/subscribe-trigger">
-    Trigger subscription API endpoints
+  <Card title="Webhook API" icon="code" href="/api/webhooks/trigger-webhook">
+    Webhook endpoint for receiving triggers from Composio
   </Card>
 </CardGroup>

@@ -1,0 +1,51 @@
+---
+title: Disconnect toolkit
+description: Permanently disconnect and delete a toolkit integration
+---
+
+## DELETE /api/toolkits/:id
+
+Permanently disconnect a toolkit integration. This deletes the connected account, auth configuration, and disables all associated triggers.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Connected account ID (UUID)
+</ParamField>
+
+### Authentication
+
+Requires Bearer token. Users can only disconnect their own toolkit connections.
+
+### Response
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+### Example request
+
+```bash
+curl -X DELETE https://your-api.com/api/toolkits/conn_abc123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Example response
+
+```json
+{
+  "message": "Toolkit disconnected successfully"
+}
+```
+
+<Note>
+Disconnecting a toolkit will:
+- Delete the connected account from Composio
+- Delete the OAuth auth configuration
+- Disable all triggers associated with this connection
+- Prevent Echo from accessing this app until reconnected
+</Note>
+
+<Tip>
+If you want to temporarily pause a toolkit without losing the connection, use the [Update toolkit](/api/toolkits/update-toolkit) endpoint with `enabled: false` instead.
+</Tip>

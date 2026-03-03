@@ -1,0 +1,75 @@
+---
+title: Connect toolkit
+description: Initiate OAuth flow to connect a new toolkit integration
+---
+
+## POST /api/toolkits
+
+Initiate the OAuth authentication flow to connect a toolkit (app integration) to the user's account.
+
+### Request body
+
+<ParamField body="toolkitSlug" type="string" required>
+  Toolkit identifier (e.g., "gmail", "github", "slack")
+</ParamField>
+
+<ParamField body="customScopes" type="array" required>
+  OAuth scopes to request. Must include at least one valid scope for the toolkit.
+</ParamField>
+
+<ParamField body="platform" type="string">
+  Platform initiating the connection: `"mobile"` or `"web"`. Affects the OAuth callback handling.
+</ParamField>
+
+### Response
+
+<ResponseField name="authConfigId" type="string">
+  Composio auth configuration ID for this connection
+</ResponseField>
+
+<ResponseField name="redirectUrl" type="string">
+  OAuth authorization URL to redirect the user to for authentication
+</ResponseField>
+
+### Example request
+
+```bash
+curl -X POST https://your-api.com/api/toolkits \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolkitSlug": "gmail",
+    "customScopes": ["gmail.readonly", "gmail.send"],
+    "platform": "mobile"
+  }'
+```
+
+### Example response
+
+```json
+{
+  "authConfigId": "config_abc123",
+  "redirectUrl": "https://accounts.google.com/o/oauth2/v2/auth?client_id=..."
+}
+```
+
+## Flow
+
+<Steps>
+  <Step title="Initiate connection">
+    Frontend calls this endpoint with desired toolkit and scopes
+  </Step>
+  <Step title="Redirect to OAuth">
+    User is redirected to `redirectUrl` to authenticate with the service
+  </Step>
+  <Step title="OAuth callback">
+    After authentication, service redirects to `/api/toolkits/oauth/callback`
+  </Step>
+  <Step title="Triggers enabled">
+    Backend automatically enables relevant triggers for the connected account
+  </Step>
+</Steps>
+
+<Note>
+Multiple connections per toolkit are allowed (e.g., work and personal Gmail accounts).
+</Note>

@@ -1,0 +1,79 @@
+---
+title: OAuth callback
+description: OAuth callback endpoint for completing toolkit connections
+---
+
+## GET /api/toolkits/oauth/callback
+
+OAuth callback endpoint called by Composio after a user completes authentication with a toolkit. This endpoint does not require authentication as it's called by the external OAuth provider.
+
+<Warning>
+This endpoint is for internal use by the OAuth flow. Frontend applications should not call this endpoint directly.
+</Warning>
+
+### Query parameters
+
+<ParamField query="connected_account_id" type="string" required>
+  Connected account ID created by Composio
+</ParamField>
+
+<ParamField query="status" type="string" required>
+  OAuth flow status: `"success"` or `"failed"`
+</ParamField>
+
+<ParamField query="error" type="string">
+  Error message if status is `"failed"`
+</ParamField>
+
+<ParamField query="toolkitSlug" type="string" required>
+  Toolkit identifier (e.g., "gmail", "github")
+</ParamField>
+
+<ParamField query="token" type="string" required>
+  One-time-use token for user identification and trigger enablement
+</ParamField>
+
+<ParamField query="platform" type="string">
+  Platform type: `"mobile"` or `"web"`. Determines redirect behavior.
+</ParamField>
+
+### Behavior
+
+<Steps>
+  <Step title="Validate callback parameters">
+    Verify all required query parameters are present and valid
+  </Step>
+  <Step title="Check OAuth status">
+    If status is `"failed"`, redirect to error page with error details
+  </Step>
+  <Step title="Consume auth token">
+    Use the one-time token to retrieve user ID securely
+  </Step>
+  <Step title="Enable triggers">
+    Automatically enable default triggers for the connected toolkit based on granted scopes
+  </Step>
+  <Step title="Redirect to frontend">
+    Redirect to success page (web: `/toolkits/success`, mobile: `echo://toolkits/success`)
+  </Step>
+</Steps>
+
+### Redirect URLs
+
+**Success (Web):**
+```
+http://localhost:3000/toolkits/success?toolkitSlug=gmail&connected_account_id=conn_123
+```
+
+**Success (Mobile):**
+```
+echo://toolkits/success?toolkitSlug=gmail&connected_account_id=conn_123
+```
+
+**Error:**
+```
+http://localhost:3000/toolkits/error?reason=oauth_failed&message=User%20denied%20permission
+```
+
+<Info>
+The callback automatically triggers background enablement of relevant triggers for the connected toolkit. This is a non-blocking operation that happens asynchronously.
+</Info>

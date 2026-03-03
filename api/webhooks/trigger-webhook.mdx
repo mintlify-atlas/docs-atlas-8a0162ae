@@ -1,0 +1,118 @@
+---
+title: Trigger webhook
+description: Webhook endpoint for receiving trigger events from Composio
+---
+
+## POST /api/triggers/webhook
+
+Webhook endpoint for receiving trigger events from Composio. This endpoint verifies webhook signatures and processes incoming events to generate action proposals.
+
+<Warning>
+This endpoint is public (no authentication required) but validates webhook signatures using HMAC-SHA256. Only requests from Composio with valid signatures are processed.
+</Warning>
+
+### Security
+
+Webhook signatures are verified using the `COMPOSIO_WEBHOOK_SECRET` environment variable:
+
+```typescript
+const signingString = `${webhook-id}.${webhook-timestamp}.${rawBody}`;
+const signature = HMAC-SHA256(signingString, webhookSecret);
+```
+
+### Headers
+
+<ParamField header="webhook-id" type="string" required>
+  Unique webhook event ID
+</ParamField>
+
+<ParamField header="webhook-timestamp" type="string" required>
+  Unix timestamp when the webhook was sent
+</ParamField>
+
+<ParamField header="webhook-signature" type="string" required>
+  HMAC signature in format `v1,<base64_signature>`
+</ParamField>
+
+### Request body
+
+<ParamField body="type" type="string" required>
+  Trigger type identifier (e.g., "github_issue_assigned", "gmail_new_email_received")
+</ParamField>
+
+<ParamField body="data" type="object" required>
+  Event-specific payload data from the connected app
+</ParamField>
+
+<ParamField body="timestamp" type="string" required>
+  ISO 8601 timestamp of when the event occurred
+</ParamField>
+
+<ParamField body="log_id" type="string" required>
+  Unique identifier for this event in Composio's logs
+</ParamField>
+
+### Response
+
+<ResponseField name="status" type="string">
+  Processing status: `"received"` or `"error"`
+</ResponseField>
+
+### Example webhook payload
+
+```json
+{
+  "type": "gmail_new_email_received",
+  "data": {
+    "messageId": "18d1a2b3c4d5e6f7",
+    "from": "sender@example.com",
+    "subject": "Important update",
+    "receivedAt": "2024-03-15T10:30:00Z"
+  },
+  "timestamp": "2024-03-15T10:30:05Z",
+  "log_id": "evt_abc123xyz"
+}
+```
+
+### Processing flow
+
+<Steps>
+  <Step title="Signature verification">
+    Verify the webhook signature matches the expected HMAC
+  </Step>
+  <Step title="Extract trigger metadata">
+    Determine toolkit, user, and trigger configuration from the event
+  </Step>
+  <Step title="Generate action proposal">
+    Use AI to analyze the trigger and create an action proposal with relevant context from user's Thoughts
+  </Step>
+  <Step title="Create action log">
+    Store the proposed action with status `pending`
+  </Step>
+  <Step title="Send push notification">
+    Notify user via Expo push notification with action preview
+  </Step>
+</Steps>
+
+### Error responses
+
+- `400 Bad Request` - Invalid payload structure
+- `401 Unauthorized` - Invalid webhook signature
+- `500 Internal Server Error` - Webhook secret not configured or processing error
+
+<Note>
+Webhooks are processed asynchronously. A `200 OK` response indicates the webhook was received and queued, not that action processing is complete.
+</Note>
+
+## Configuring webhooks
+
+To receive trigger webhooks:
+
+1. Set `COMPOSIO_WEBHOOK_SECRET` in backend environment variables
+2. Configure webhook URL in Composio dashboard: `https://your-api.com/api/triggers/webhook`
+3. For local development, expose backend via ngrok and update Composio webhook URL
+
+```bash
+ngrok http 8000
+# Update Composio dashboard with: https://abc123.ngrok.io/api/triggers/webhook
+```

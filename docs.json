@@ -75,7 +75,8 @@
             "group": "Profiles",
             "pages": [
               "api/profiles/get-profile",
-              "api/profiles/update-profile"
+              "api/profiles/update-profile",
+              "api/profiles/delete-profile"
             ]
           },
           {
@@ -91,8 +92,6 @@
             "group": "Thoughts (Items)",
             "pages": [
               "api/items/create-item",
-              "api/items/get-items",
-              "api/items/get-item",
               "api/items/update-item",
               "api/items/delete-item"
             ]
@@ -102,23 +101,23 @@
             "pages": [
               "api/toolkits/list-toolkits",
               "api/toolkits/get-toolkit",
-              "api/toolkits/enable-toolkit",
-              "api/toolkits/disable-toolkit"
+              "api/toolkits/connect-toolkit",
+              "api/toolkits/update-toolkit",
+              "api/toolkits/disconnect-toolkit",
+              "api/toolkits/get-scopes",
+              "api/toolkits/oauth-callback"
             ]
           },
           {
-            "group": "Triggers",
+            "group": "Webhooks",
             "pages": [
-              "api/triggers/subscribe-trigger",
-              "api/triggers/list-active-triggers",
-              "api/triggers/unsubscribe-trigger"
+              "api/webhooks/trigger-webhook"
             ]
           },
           {
             "group": "Push Notifications",
             "pages": [
-              "api/push-tokens/register-token",
-              "api/push-tokens/update-token"
+              "api/push-tokens/register-token"
             ]
           }
         ]

@@ -1,0 +1,69 @@
+---
+title: Update toolkit
+description: Enable, disable, or update OAuth scopes for a connected toolkit
+---
+
+## PATCH /api/toolkits/:id
+
+Update a connected toolkit's state or OAuth scopes.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Connected account ID (UUID)
+</ParamField>
+
+### Request body
+
+<ParamField body="enabled" type="boolean">
+  Enable or disable the toolkit connection. When disabled, triggers are paused but the connection is preserved.
+</ParamField>
+
+<ParamField body="scopes" type="array">
+  Update OAuth scopes. This will delete the existing auth config and trigger re-authentication with new scopes.
+</ParamField>
+
+### Response
+
+<ResponseField name="toolkit" type="object">
+  Updated toolkit connection object
+</ResponseField>
+
+<Expandable title="toolkit">
+  <ResponseField name="id" type="string">
+    Connected account ID
+  </ResponseField>
+  <ResponseField name="integrationId" type="string">
+    Composio integration ID
+  </ResponseField>
+  <ResponseField name="status" type="string">
+    Connection status: `connected`, `expired`, `disconnected`
+  </ResponseField>
+  <ResponseField name="enabled" type="boolean">
+    Whether the toolkit is enabled
+  </ResponseField>
+</Expandable>
+
+### Example: Toggle enabled state
+
+```bash
+curl -X PATCH https://your-api.com/api/toolkits/conn_123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+### Example: Update scopes
+
+```bash
+curl -X PATCH https://your-api.com/api/toolkits/conn_123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scopes": ["gmail.readonly", "gmail.send", "gmail.modify"]
+  }'
+```
+
+<Warning>
+Updating scopes deletes the existing auth configuration and requires re-authentication. The user will need to complete the OAuth flow again.
+</Warning>

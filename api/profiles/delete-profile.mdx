@@ -1,0 +1,49 @@
+---
+title: Delete profile
+description: Permanently delete a user profile and all associated data
+---
+
+## DELETE /api/profiles/:id
+
+Permanently delete a user profile. This action is irreversible and will cascade delete all associated data (action logs, items, push tokens, etc.).
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  User profile ID (UUID)
+</ParamField>
+
+### Authentication
+
+Requires Bearer token authentication. Users can only delete their own profile.
+
+### Response
+
+<ResponseField name="status" type="number">
+  HTTP status code (204 on success)
+</ResponseField>
+
+Returns `204 No Content` on successful deletion with an empty body.
+
+### Errors
+
+- `403 Forbidden` - Attempting to delete another user's profile
+- `404 Not Found` - Profile does not exist
+- `500 Internal Server Error` - Server error during deletion
+
+### Example request
+
+```bash
+curl -X DELETE https://your-api.com/api/profiles/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Example response
+
+```
+204 No Content
+```
+
+<Warning>
+This action is permanent and cannot be undone. All user data including action logs, saved items, and connected toolkits will be deleted.
+</Warning>

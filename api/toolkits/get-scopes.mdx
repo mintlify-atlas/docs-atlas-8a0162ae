@@ -1,0 +1,59 @@
+---
+title: Get OAuth scopes
+description: Retrieve the OAuth scopes granted for a connected toolkit
+---
+
+## GET /api/toolkits/:id/scopes
+
+Retrieve the OAuth scopes currently granted for a connected toolkit. Scopes determine what permissions Echo has to access the integrated app.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Connected account ID (UUID)
+</ParamField>
+
+### Response
+
+<ResponseField name="scopes" type="array">
+  Array of OAuth scope strings granted for this connection
+</ResponseField>
+
+### Example request
+
+```bash
+curl https://your-api.com/api/toolkits/conn_abc123/scopes \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Example response
+
+```json
+{
+  "scopes": [
+    "gmail.readonly",
+    "gmail.send",
+    "gmail.modify"
+  ]
+}
+```
+
+## Common scopes by toolkit
+
+### Gmail
+- `gmail.readonly` - Read email messages
+- `gmail.send` - Send emails
+- `gmail.modify` - Archive, delete, or label messages
+
+### GitHub
+- `repo` - Full repository access
+- `read:org` - Read organization data
+- `write:discussion` - Create and manage discussions
+
+### Google Calendar
+- `calendar.readonly` - View calendar events
+- `calendar.events` - Create and modify events
+
+<Info>
+Scopes are defined at the auth configuration level and apply to all operations performed through this toolkit connection.
+</Info>
