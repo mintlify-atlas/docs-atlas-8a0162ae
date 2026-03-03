@@ -1,0 +1,208 @@
+---
+title: Thoughts
+description: Build long-term context for your AI assistant by saving links, notes, screenshots, and voice memos
+---
+
+Thoughts are Echo's memory system. They're pieces of information you save—links, notes, screenshots, or voice recordings—that Echo remembers and uses to improve future actions.
+
+## What are thoughts?
+
+Think of Thoughts as your personal knowledge base that makes Echo smarter over time. Unlike traditional bookmarks or notes apps, Thoughts are actively used by Echo's AI to:
+
+- Understand your preferences and work style
+- Provide relevant context for proposed actions
+- Make smarter decisions based on your past behavior
+- Answer questions about things you've saved
+
+<Info>
+Thoughts are powered by [Supermemory](https://supermemory.ai), a distributed memory service that makes your saved information searchable and contextually relevant for AI.
+</Info>
+
+## Types of thoughts
+
+You can save multiple types of content as Thoughts:
+
+<CardGroup cols={2}>
+  <Card title="Web links" icon="link">
+    Save articles, documentation, or any URL with automatic metadata extraction
+  </Card>
+  <Card title="Text notes" icon="note-sticky">
+    Quick thoughts, reminders, or detailed notes in plain text
+  </Card>
+  <Card title="Screenshots" icon="image">
+    Visual context from your screen (with OCR for text extraction)
+  </Card>
+  <Card title="Voice memos" icon="microphone">
+    Spoken notes converted to text and stored
+  </Card>
+</CardGroup>
+
+## How thoughts work
+
+<Steps>
+  <Step title="Save a thought">
+    Add content via the mobile app, share sheet, or share intent from other apps
+  </Step>
+  <Step title="Automatic processing">
+    Echo extracts metadata (title, description, Open Graph images) and syncs to Supermemory
+  </Step>
+  <Step title="Memory indexing">
+    Supermemory creates semantic embeddings so Echo can find relevant thoughts contextually
+  </Step>
+  <Step title="Action enhancement">
+    When proposing actions, Echo searches your thoughts for relevant context
+  </Step>
+</Steps>
+
+## Thought metadata
+
+Each thought is stored in the database with rich metadata:
+
+```typescript
+// From backend/src/db/schema/schema.ts (items table)
+{
+  url: string,              // Original URL or content identifier
+  title: string,            // Extracted or user-provided title
+  note: string,             // Your personal note/annotation
+  tags: string[],           // Categorization tags
+  status: 'active' | 'archived',
+  is_read: boolean,         // Read/unread tracking
+  og_image: string,         // Open Graph image URL
+  og_description: string,   // Extracted description
+  supermemory_id: string    // Supermemory sync identifier
+}
+```
+
+## Supermemory integration
+
+Thoughts sync bidirectionally with Supermemory:
+
+**On create:**
+```typescript
+// Backend automatically creates memory in Supermemory
+await addMemory({
+  content: thought.url,
+  userId: user.id
+});
+```
+
+**On update:**
+```typescript
+// Updates propagate to Supermemory
+await updateMemory(thought.supermemory_id, {
+  content: updatedThought.url
+});
+```
+
+**On delete:**
+```typescript
+// Cleanup from Supermemory
+await deleteMemory(thought.supermemory_id);
+```
+
+<Note>
+This ensures your thoughts are available for semantic search and AI context retrieval across sessions.
+</Note>
+
+## Organizing thoughts
+
+### Tags
+
+Add tags to categorize your thoughts for easier filtering:
+
+```json
+{
+  "tags": ["documentation", "react", "tutorial"]
+}
+```
+
+### Collections
+
+Group related thoughts into collections (like folders):
+
+- Create project-specific collections
+- Add thoughts to multiple collections
+- View all thoughts in a collection
+
+### Archive
+
+Mark thoughts as archived when they're no longer actively needed:
+
+```json
+{
+  "status": "archived"
+}
+```
+
+Archived thoughts are hidden from default views but still searchable.
+
+## How Echo uses thoughts
+
+When proposing an action, Echo:
+
+1. **Analyzes the trigger** (e.g., new calendar event about a client meeting)
+2. **Searches your thoughts** for relevant context using semantic similarity:
+   - Previous meeting notes with that client
+   - Documentation you saved about their product
+   - Voice memos from past discussions
+3. **Incorporates findings** into the proposed action:
+   "I found your notes from the last meeting with [Client] where you discussed [topic]. Should I prepare a summary for tomorrow's call?"
+
+<Tip>
+The more thoughts you save, the smarter Echo becomes at understanding your work context and proposing relevant actions.
+</Tip>
+
+## Privacy and security
+
+<Warning>
+All thoughts are private to your account. Row Level Security (RLS) policies ensure you can only access your own thoughts.
+</Warning>
+
+- Thoughts are stored encrypted in PostgreSQL
+- Supermemory syncs use your personal API key
+- No thoughts are shared across users
+- You can delete thoughts permanently at any time
+
+## Example workflows
+
+<Accordion title="Documentation for a project">
+**Scenario**: You're learning a new framework
+
+**Thoughts to save**:
+- Official documentation pages
+- Tutorial videos (as links)
+- Code snippets (as notes)
+- Screenshots of examples that worked
+
+**How Echo uses them**:
+When you ask Echo to help set up a feature, it references your saved documentation and past examples to suggest the right approach.
+</Accordion>
+
+<Accordion title="Meeting preparation">
+**Scenario**: Recurring client meetings
+
+**Thoughts to save**:
+- Voice memos after each meeting with key takeaways
+- Links to shared documents
+- Notes about client preferences and feedback
+
+**How Echo uses them**:
+Before your next meeting, Echo reviews past notes and can prepare an agenda or summary of previous action items.
+</Accordion>
+
+## Related concepts
+
+<CardGroup cols={2}>
+  <Card title="Actions" icon="robot" href="/concepts/actions">
+    See how thoughts improve action quality
+  </Card>
+  <Card title="Managing thoughts" icon="brain" href="/mobile/managing-thoughts">
+    Add, organize, and search thoughts in the mobile app
+  </Card>
+  <Card title="Backend integration" icon="database" href="/backend/integrations">
+    Learn about Supermemory API integration
+  </Card>
+  <Card title="Database schema" icon="table" href="/backend/database-schema">
+    Explore the items table structure
+  </Card>
+</CardGroup>

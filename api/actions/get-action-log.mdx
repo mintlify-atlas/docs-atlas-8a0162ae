@@ -1,0 +1,210 @@
+---
+title: "Get Action Log"
+description: "Retrieve details of a specific action log by ID"
+---
+
+## Endpoint
+
+```
+GET /api/action-logs/:id
+```
+
+## Authentication
+
+This endpoint requires authentication. Include a valid JWT token in the Authorization header.
+
+```
+Authorization: Bearer <token>
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  UUID of the action log to retrieve. Must be a valid UUID format.
+</ParamField>
+
+## Response
+
+<ResponseField name="log" type="object">
+  The requested action log object
+  
+  <Expandable title="Action Log Properties">
+    <ResponseField name="id" type="string">
+      Unique UUID identifier for the action log
+    </ResponseField>
+    
+    <ResponseField name="userId" type="string">
+      ID of the user who owns this action log
+    </ResponseField>
+    
+    <ResponseField name="requestType" type="string">
+      Type of request: `chat` or `trigger`
+    </ResponseField>
+    
+    <ResponseField name="triggerSource" type="string">
+      Source that triggered the action
+    </ResponseField>
+    
+    <ResponseField name="actionName" type="string">
+      Name of the action
+    </ResponseField>
+    
+    <ResponseField name="executionId" type="string" nullable>
+      Execution ID if provided
+    </ResponseField>
+    
+    <ResponseField name="toolkitsUsed" type="array">
+      Array of toolkit slugs used for this action
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Current status: `pending`, `ongoing`, `completed`, `failed`, or `cancelled`
+    </ResponseField>
+    
+    <ResponseField name="request" type="string" nullable>
+      Original user request text that triggered the action
+    </ResponseField>
+    
+    <ResponseField name="additionalContext" type="string" nullable>
+      Additional context information
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object" nullable>
+      Metadata object containing action details
+      
+      <Expandable title="Common Metadata Fields">
+        <ResponseField name="proposedAction" type="string">
+          AI-generated summary of the proposed action
+        </ResponseField>
+        
+        <ResponseField name="conversationHistory" type="array">
+          Array of conversation messages between user and AI, including execution traces
+        </ResponseField>
+        
+        <ResponseField name="result" type="object">
+          Result data from executed actions (deprecated, use conversationHistory)
+        </ResponseField>
+        
+        <ResponseField name="userResponse" type="string">
+          User's response if action required approval: `approve`, `reject`, or `modify`
+        </ResponseField>
+        
+        <ResponseField name="modificationText" type="string">
+          User's modification instructions when userResponse is `modify`
+        </ResponseField>
+        
+        <ResponseField name="respondedAt" type="string">
+          ISO 8601 timestamp when user responded
+        </ResponseField>
+        
+        <ResponseField name="error" type="object">
+          Error information if action failed
+          
+          <ResponseField name="message" type="string">
+            Error message
+          </ResponseField>
+          
+          <ResponseField name="code" type="string">
+            Error code
+          </ResponseField>
+          
+          <ResponseField name="details" type="object">
+            Additional error details
+          </ResponseField>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the action log was created
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the action log was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Status Codes
+
+- `200` - Success
+- `400` - Bad request (invalid UUID format)
+- `401` - Unauthorized (missing or invalid authentication)
+- `404` - Action log not found or does not belong to authenticated user
+- `500` - Internal server error
+
+## Example Request
+
+```bash
+curl -X GET https://api.echo.ai/api/action-logs/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "log": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "userId": "user_123456",
+    "requestType": "trigger",
+    "triggerSource": "github_webhook",
+    "actionName": "Create GitHub issue",
+    "executionId": "exec_456",
+    "toolkitsUsed": ["github"],
+    "status": "pending",
+    "request": "Create an issue for bug found in production",
+    "additionalContext": "Error occurred in user authentication flow",
+    "metadata": {
+      "proposedAction": "I'll create an issue in the echo-ai/backend repository with title 'Production Bug: Authentication Flow Error' and include the error details in the description.",
+      "conversationHistory": [
+        {
+          "role": "user",
+          "content": "Create an issue for bug found in production"
+        },
+        {
+          "role": "assistant",
+          "content": "I'll create an issue in the echo-ai/backend repository with title 'Production Bug: Authentication Flow Error' and include the error details in the description.",
+          "executionTrace": [
+            {
+              "action": "github_create_issue",
+              "parameters": {
+                "repository": "echo-ai/backend",
+                "title": "Production Bug: Authentication Flow Error",
+                "body": "Error occurred in user authentication flow"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "createdAt": "2026-03-03T10:30:00.000Z",
+    "updatedAt": "2026-03-03T10:30:00.000Z"
+  }
+}
+```
+
+## Error Responses
+
+### Invalid UUID Format
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid ID format"
+}
+```
+
+### Not Found
+
+```json
+{
+  "error": "Not Found",
+  "message": "Action log not found"
+}
+```
+
+## Notes
+
+- The endpoint only returns action logs that belong to the authenticated user
+- If the log exists but belongs to a different user, a 404 error is returned for security

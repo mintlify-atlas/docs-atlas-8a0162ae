@@ -1,0 +1,347 @@
+---
+title: "Authentication"
+description: "Supabase Auth integration and JWT token verification middleware"
+---
+
+Echo uses Supabase Auth for user authentication and authorization. All protected API endpoints validate JWT tokens issued by Supabase.
+
+## Overview
+
+The authentication flow:
+
+1. User signs in via Supabase Auth (handled by frontend/mobile app)
+2. Supabase returns a JWT access token
+3. Client sends token in `Authorization` header
+4. Backend middleware validates token and extracts user info
+5. Request proceeds with authenticated user context
+
+## Authentication Middleware
+
+The `authenticate` middleware validates JWT tokens and attaches user information to requests.
+
+### Implementation
+
+```typescript src/middleware/auth.ts
+import { type Request, type Response, type NextFunction } from "express";
+import { createClient } from "@supabase/supabase-js";
+import { type AuthenticatedRequest } from "../types/auth.js";
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set");
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({
+        error: "Unauthorized",
+        message: "Missing or invalid authorization header",
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7);
+
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid or expired token",
+      });
+      return;
+    }
+
+    (req as unknown as AuthenticatedRequest).user = user;
+    (req as unknown as AuthenticatedRequest).userId = user.id;
+
+    next();
+  } catch (error) {
+    console.error("Auth middleware error: ", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Authentication failed",
+    });
+  }
+};
+```
+
+### How It Works
+
+<Steps>
+  <Step title="Extract token">
+    Middleware reads the `Authorization` header and extracts the JWT token after "Bearer ".
+  </Step>
+
+  <Step title="Validate token">
+    Calls `supabase.auth.getUser(token)` to verify the token with Supabase Auth.
+  </Step>
+
+  <Step title="Attach user info">
+    If valid, attaches `user` and `userId` to the request object for downstream handlers.
+  </Step>
+
+  <Step title="Handle errors">
+    Returns 401 for invalid/missing tokens or 500 for server errors.
+  </Step>
+</Steps>
+
+## Using the Middleware
+
+### Protecting Routes
+
+Apply the middleware to any route that requires authentication:
+
+```typescript
+import { authenticate } from "../middleware/auth.js";
+import { Router } from "express";
+
+const router = Router();
+
+// Protected route
+router.get("/api/items", authenticate, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  // userId is now available and verified
+});
+
+export default router;
+```
+
+### Accessing User Info
+
+Once authenticated, the request object contains:
+
+```typescript
+interface AuthenticatedRequest extends Request {
+  user: User;      // Full Supabase user object
+  userId: string;  // User UUID
+}
+```
+
+Example usage:
+
+```typescript
+router.get("/api/profile", authenticate, async (req, res) => {
+  const { userId, user } = req as AuthenticatedRequest;
+  
+  console.log("User ID:", userId);
+  console.log("Email:", user.email);
+  
+  // Fetch user-specific data
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, userId)
+  });
+  
+  res.json(profile);
+});
+```
+
+## Supabase Configuration
+
+### Environment Variables
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+```
+
+<Warning>
+  **Important:** Use the **Service Role Key**, not the anon key. The service role key has elevated permissions to validate tokens server-side.
+</Warning>
+
+### Getting Credentials
+
+<Steps>
+  <Step title="Navigate to Supabase Dashboard">
+    Go to your project at [supabase.com](https://supabase.com)
+  </Step>
+
+  <Step title="Find API settings">
+    Settings → API
+  </Step>
+
+  <Step title="Copy credentials">
+    - **Project URL:** Copy the URL (e.g., `https://xxx.supabase.co`)
+    - **Service Role Key:** Copy the `service_role` key (NOT `anon` key)
+  </Step>
+</Steps>
+
+## Client-Side Integration
+
+### Sending Tokens
+
+Clients must include the JWT token in the `Authorization` header:
+
+```javascript
+// Fetch example
+const response = await fetch('http://localhost:8000/api/items', {
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+### React Native / Expo
+
+```typescript
+import { supabase } from './lib/supabase';
+
+// Get current session
+const { data: { session } } = await supabase.auth.getSession();
+const accessToken = session?.access_token;
+
+// Make authenticated request
+const response = await fetch('http://localhost:8000/api/items', {
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+  }
+});
+```
+
+## Error Responses
+
+### 401 Unauthorized - Missing Header
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Missing or invalid authorization header"
+}
+```
+
+**Cause:** No `Authorization` header or wrong format (should be `Bearer <token>`)
+
+### 401 Unauthorized - Invalid Token
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid or expired token"
+}
+```
+
+**Causes:**
+- Token has expired (Supabase tokens expire after 1 hour by default)
+- Token is malformed
+- Token was revoked
+- User was deleted
+
+### 500 Internal Server Error
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Authentication failed"
+}
+```
+
+**Causes:**
+- Supabase service is down
+- Invalid `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY`
+- Network issues
+
+## Token Refresh
+
+Supabase tokens expire after 1 hour. Clients should handle token refresh:
+
+```typescript
+// Supabase automatically refreshes tokens
+const { data: { session } } = await supabase.auth.getSession();
+
+// Always use the latest session token
+const accessToken = session?.access_token;
+```
+
+<Info>
+  Supabase client libraries handle token refresh automatically. The backend validates whatever token is sent—it doesn't manage refresh logic.
+</Info>
+
+## Row Level Security (RLS)
+
+While the backend validates user identity, **Row Level Security** in Supabase ensures users can only access their own data at the database level.
+
+### Example: Items Table
+
+```sql
+-- Users can only select their own items
+CREATE POLICY "Users can view own items"
+ON items
+FOR SELECT
+USING (auth.uid() = user_id);
+
+-- Users can only insert items for themselves
+CREATE POLICY "Users can insert own items"
+ON items
+FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+```
+
+<Note>
+  RLS policies are defined in the database schema (`src/db/schema/schema.ts`) and enforced at the PostgreSQL level for defense in depth.
+</Note>
+
+## Testing Authentication
+
+### Get a Test Token
+
+Use the development script to get an auth token:
+
+```bash
+# Set test credentials in .env
+TEST_EMAIL=test@example.com
+TEST_PASSWORD=password123
+
+# Get token (requires custom script)
+node src/utils/get-auth-token.js
+```
+
+### Test with cURL
+
+```bash
+curl -X GET http://localhost:8000/api/items \
+  -H "Authorization: Bearer eyJhbGc..."
+```
+
+### Test with Postman
+
+1. Create a new request
+2. Set method to `GET` and URL to `http://localhost:8000/api/items`
+3. Go to **Authorization** tab
+4. Select **Bearer Token**
+5. Paste your JWT token
+6. Send request
+
+## Security Best Practices
+
+<Warning>
+  - **Never expose** `SUPABASE_SERVICE_ROLE_KEY` to clients
+  - Always use HTTPS in production
+  - Tokens should be stored securely (e.g., secure storage, not localStorage)
+  - Implement rate limiting on authentication endpoints
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/backend/database-schema">
+    Explore user profiles and RLS policies
+  </Card>
+  <Card title="API Authentication" icon="code" href="/api/authentication">
+    See authentication details for all API endpoints
+  </Card>
+</CardGroup>

@@ -1,0 +1,200 @@
+---
+title: "Update Profile"
+description: "Update a user profile's settings and preferences"
+---
+
+## Endpoint
+
+```
+PUT /api/profiles/:id
+```
+
+## Authentication
+
+This endpoint requires authentication via Bearer token.
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the profile to update. Must match the authenticated user's ID.
+</ParamField>
+
+## Authorization
+
+Users can only update their own profile. If the requested profile ID does not match the authenticated user's ID, a 403 Forbidden error will be returned.
+
+## Request Body
+
+All fields are optional. Only include the fields you want to update.
+
+<ParamField body="q1_persona" type="string">
+  User's persona selection from onboarding. Updates the `onboardingMetadata.q1_persona` field.
+</ParamField>
+
+<ParamField body="q2_work_location" type="string">
+  User's work location preference. Updates the `onboardingMetadata.q2_work_location` field.
+</ParamField>
+
+<ParamField body="automationPosture" type="string">
+  User's automation preference. Must be one of:
+  - `ask_first` - Prompt before executing actions
+  - `auto_execute` - Automatically execute actions
+</ParamField>
+
+<ParamField body="notificationPreference" type="string">
+  User's notification settings. Must be one of:
+  - `all` - Receive all notifications
+  - `urgent_only` - Only urgent notifications
+  - `daily_digest` - Daily summary
+  - `silent` - No notifications
+</ParamField>
+
+<ParamField body="onboardingComplete" type="boolean">
+  Whether the user has completed onboarding
+</ParamField>
+
+## Response
+
+<ResponseField name="profile" type="object">
+  The updated user profile object
+  
+  <Expandable title="Profile object properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the profile (UUID)
+    </ResponseField>
+    
+    <ResponseField name="automationPosture" type="string">
+      User's automation preference
+    </ResponseField>
+    
+    <ResponseField name="onboardingMetadata" type="object">
+      Metadata from the onboarding process
+      
+      <Expandable title="Onboarding metadata properties">
+        <ResponseField name="q1_persona" type="string">
+          User's selected persona from onboarding
+        </ResponseField>
+        
+        <ResponseField name="q2_work_location" type="string">
+          User's work location preference
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="notificationPreference" type="string">
+      User's notification settings
+    </ResponseField>
+    
+    <ResponseField name="onboardingComplete" type="boolean">
+      Whether the user has completed onboarding
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      Timestamp when the profile was created (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      Timestamp when the profile was last updated (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X PUT https://api.echo.app/api/profiles/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "automationPosture": "auto_execute",
+    "notificationPreference": "urgent_only",
+    "onboardingComplete": true
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "profile": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "automationPosture": "auto_execute",
+    "onboardingMetadata": {
+      "q1_persona": "developer",
+      "q2_work_location": "remote"
+    },
+    "notificationPreference": "urgent_only",
+    "onboardingComplete": true,
+    "createdAt": "2026-03-01T10:30:00.000Z",
+    "updatedAt": "2026-03-03T09:15:00.000Z"
+  }
+}
+```
+
+## Partial Update Example
+
+You can update just the onboarding metadata:
+
+```bash
+curl -X PUT https://api.echo.app/api/profiles/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q1_persona": "product_manager",
+    "q2_work_location": "hybrid"
+  }'
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Error type identifier
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable error message
+</ResponseField>
+
+### 403 Forbidden
+
+Returned when attempting to update another user's profile.
+
+```json
+{
+  "error": "Forbidden",
+  "message": "You can only update your own profile"
+}
+```
+
+### 404 Not Found
+
+Returned when the profile does not exist.
+
+```json
+{
+  "error": "Not Found",
+  "message": "Profile not found"
+}
+```
+
+### 400 Bad Request
+
+Returned when validation fails for provided fields (e.g., invalid enum values).
+
+### 500 Internal Server Error
+
+Returned when a server error occurs.
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Failed to update profile"
+}
+```
+
+## Notes
+
+- Profile creation is handled automatically during user signup via database triggers or auth webhooks. There is no POST endpoint for profile creation.
+- The `updatedAt` timestamp is automatically set to the current time on each update.
+- Onboarding metadata fields (`q1_persona` and `q2_work_location`) are merged with existing metadata, not replaced.
+- Field validation is performed using the `validateProfileFields` helper function.

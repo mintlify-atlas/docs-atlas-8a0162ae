@@ -1,0 +1,205 @@
+---
+title: "Get Action Logs"
+description: "Retrieve a paginated list of action logs for the authenticated user"
+---
+
+## Endpoint
+
+```
+GET /api/action-logs
+```
+
+## Authentication
+
+This endpoint requires authentication. Include a valid JWT token in the Authorization header.
+
+```
+Authorization: Bearer <token>
+```
+
+## Query Parameters
+
+<ParamField query="status" type="string">
+  Filter by action status. Must be one of: `pending`, `ongoing`, `completed`, `failed`, `cancelled`
+</ParamField>
+
+<ParamField query="startDate" type="string">
+  Filter for logs created on or after this date. Must be in ISO 8601 datetime format (e.g., `2026-03-01T00:00:00Z`)
+</ParamField>
+
+<ParamField query="endDate" type="string">
+  Filter for logs created on or before this date. Must be in ISO 8601 datetime format (e.g., `2026-03-31T23:59:59Z`)
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number for pagination. Minimum value is 1.
+</ParamField>
+
+<ParamField query="limit" type="number" default="20">
+  Number of results per page. Minimum 1, maximum 100.
+</ParamField>
+
+## Response
+
+<ResponseField name="logs" type="array">
+  Array of action log objects, ordered by creation date (newest first)
+  
+  <Expandable title="Action Log Properties">
+    <ResponseField name="id" type="string">
+      Unique UUID identifier for the action log
+    </ResponseField>
+    
+    <ResponseField name="userId" type="string">
+      ID of the user
+    </ResponseField>
+    
+    <ResponseField name="requestType" type="string">
+      Type of request: `chat` or `trigger`
+    </ResponseField>
+    
+    <ResponseField name="triggerSource" type="string">
+      Source that triggered the action
+    </ResponseField>
+    
+    <ResponseField name="actionName" type="string">
+      Name of the action
+    </ResponseField>
+    
+    <ResponseField name="executionId" type="string" nullable>
+      Execution ID if provided
+    </ResponseField>
+    
+    <ResponseField name="toolkitsUsed" type="array">
+      Array of toolkit slugs used
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Current status: `pending`, `ongoing`, `completed`, `failed`, or `cancelled`
+    </ResponseField>
+    
+    <ResponseField name="request" type="string" nullable>
+      Original request text
+    </ResponseField>
+    
+    <ResponseField name="additionalContext" type="string" nullable>
+      Additional context information
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object" nullable>
+      Custom metadata object including action results, errors, and conversation history
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of creation
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp of last update
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pagination" type="object">
+  Pagination metadata
+  
+  <Expandable title="Pagination Properties">
+    <ResponseField name="page" type="number">
+      Current page number
+    </ResponseField>
+    
+    <ResponseField name="limit" type="number">
+      Number of results per page
+    </ResponseField>
+    
+    <ResponseField name="total" type="number">
+      Total number of matching action logs
+    </ResponseField>
+    
+    <ResponseField name="totalPages" type="number">
+      Total number of pages available
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Status Codes
+
+- `200` - Success
+- `400` - Bad request (invalid query parameters)
+- `401` - Unauthorized (missing or invalid authentication)
+- `500` - Internal server error
+
+## Example Request
+
+```bash
+curl -X GET "https://api.echo.ai/api/action-logs?status=pending&page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example with Date Filtering
+
+```bash
+curl -X GET "https://api.echo.ai/api/action-logs?startDate=2026-03-01T00:00:00Z&endDate=2026-03-31T23:59:59Z&limit=50" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "logs": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "userId": "user_123456",
+      "requestType": "trigger",
+      "triggerSource": "github_webhook",
+      "actionName": "Create GitHub issue",
+      "executionId": null,
+      "toolkitsUsed": ["github"],
+      "status": "pending",
+      "request": "Create an issue for bug found in production",
+      "additionalContext": "Error occurred in user authentication flow",
+      "metadata": {
+        "proposedAction": "I'll create an issue in the echo-ai/backend repository",
+        "conversationHistory": []
+      },
+      "createdAt": "2026-03-03T10:30:00.000Z",
+      "updatedAt": "2026-03-03T10:30:00.000Z"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "userId": "user_123456",
+      "requestType": "chat",
+      "triggerSource": "user_chat",
+      "actionName": "Send email notification",
+      "executionId": "exec_789",
+      "toolkitsUsed": ["gmail"],
+      "status": "completed",
+      "request": "Email the team about deployment",
+      "additionalContext": null,
+      "metadata": {
+        "result": {
+          "emailId": "msg_abc123",
+          "sent": true
+        }
+      },
+      "createdAt": "2026-03-03T09:15:00.000Z",
+      "updatedAt": "2026-03-03T09:16:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
+}
+```
+
+## Error Response
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid startDate format"
+}
+```

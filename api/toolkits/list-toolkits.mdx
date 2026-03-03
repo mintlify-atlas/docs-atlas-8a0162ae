@@ -1,0 +1,153 @@
+---
+title: "List Toolkits"
+description: "Retrieve all toolkit connections for the authenticated user"
+---
+
+## Endpoint
+
+```
+GET /api/toolkits
+```
+
+## Authentication
+
+This endpoint requires authentication. Include a valid session token in your request.
+
+## Query Parameters
+
+<ParamField query="status" type="string">
+  Filter toolkits by connection status. Valid values:
+  - `connected` - Active connections
+  - `disconnected` - Disconnected connections
+  - `pending` - Connections awaiting completion
+  - `expired` - Expired connections
+  
+  If omitted, returns toolkits with all statuses.
+</ParamField>
+
+<ParamField query="enriched" type="boolean">
+  When set to `true`, includes additional metadata from Composio for each toolkit (name, description, tools count, etc.).
+  
+  Default: `false`
+</ParamField>
+
+## Response
+
+<ResponseField name="toolkits" type="array">
+  Array of toolkit connection objects
+  
+  <Expandable title="ToolkitConnection object">
+    <ResponseField name="id" type="string">
+      Connected account ID from Composio
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string">
+      Toolkit identifier (e.g., `github`, `gmail`, `slack`)
+    </ResponseField>
+    
+    <ResponseField name="connectionStatus" type="string">
+      Current status of the connection: `connected`, `disconnected`, `pending`, or `expired`
+    </ResponseField>
+    
+    <ResponseField name="enabled" type="boolean">
+      Whether the toolkit is enabled for use by Echo
+    </ResponseField>
+    
+    <ResponseField name="scopes" type="array">
+      OAuth scopes granted for this connection (may not always be available)
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the connection was created
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the connection was last updated
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Toolkit display name (only when `enriched=true`)
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Toolkit description (only when `enriched=true`)
+    </ResponseField>
+    
+    <ResponseField name="toolsCount" type="number">
+      Number of available tools/actions (only when `enriched=true`)
+    </ResponseField>
+    
+    <ResponseField name="triggersCount" type="number">
+      Number of available triggers/webhooks (only when `enriched=true`)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic request
+
+```bash
+curl -X GET 'https://api.echo.ai/api/toolkits' \
+  -H 'Cookie: session=your-session-token'
+```
+
+### Filter by status
+
+```bash
+curl -X GET 'https://api.echo.ai/api/toolkits?status=connected' \
+  -H 'Cookie: session=your-session-token'
+```
+
+### Get enriched metadata
+
+```bash
+curl -X GET 'https://api.echo.ai/api/toolkits?enriched=true' \
+  -H 'Cookie: session=your-session-token'
+```
+
+### Response example
+
+```json
+{
+  "toolkits": [
+    {
+      "id": "acc_abc123xyz",
+      "slug": "github",
+      "connectionStatus": "connected",
+      "enabled": true,
+      "scopes": ["repo", "user"],
+      "createdAt": "2026-01-15T10:30:00.000Z",
+      "updatedAt": "2026-01-15T10:30:00.000Z"
+    },
+    {
+      "id": "acc_def456uvw",
+      "slug": "gmail",
+      "connectionStatus": "connected",
+      "enabled": true,
+      "scopes": ["https://www.googleapis.com/auth/gmail.readonly"],
+      "createdAt": "2026-01-20T14:22:00.000Z",
+      "updatedAt": "2026-01-20T14:22:00.000Z"
+    }
+  ]
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Error type identifier
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable error message
+</ResponseField>
+
+### 500 Internal Server Error
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Failed to fetch toolkits"
+}
+```

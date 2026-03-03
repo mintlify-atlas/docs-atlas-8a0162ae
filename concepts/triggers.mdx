@@ -1,0 +1,332 @@
+---
+title: Triggers
+description: Understand how Echo detects events in your connected apps and proposes actions automatically
+---
+
+Triggers are the events in your connected apps that cause Echo to spring into action. They're the "sensors" that detect when something happens, enabling Echo to be truly proactive.
+
+## What are triggers?
+
+A trigger is a webhook subscription that listens for specific events in your connected apps. When an event occurs (like receiving an email or being assigned a GitHub issue), the app sends a webhook to Echo, which then:
+
+1. Analyzes the event data
+2. Gathers relevant context from your Thoughts
+3. Proposes an action to handle the event
+4. Notifies you for approval
+
+<Info>
+Triggers transform Echo from a reactive chatbot into a proactive assistant that anticipates your needs.
+</Info>
+
+## How triggers work
+
+<Steps>
+  <Step title="Subscribe to trigger">
+    When you connect a toolkit, you choose which triggers to enable (e.g., "New Email", "Calendar Event Created")
+  </Step>
+  <Step title="Webhook registration">
+    Echo registers a webhook with the service via Composio, pointing to your backend endpoint
+  </Step>
+  <Step title="Event occurs">
+    The connected app detects an event matching your trigger criteria
+  </Step>
+  <Step title="Webhook delivery">
+    The app sends event data as JSON to Echo's webhook endpoint
+  </Step>
+  <Step title="Trigger processing">
+    Echo's backend processes the trigger, generates an action proposal, and sends you a push notification
+  </Step>
+</Steps>
+
+## Trigger anatomy
+
+Each trigger subscription has several components:
+
+```typescript
+// From backend/src/routes/triggers.ts
+{
+  "userId": "user_123",
+  "triggerSlug": "gmail_new_email_received",
+  "connectedAccountId": "acc_456",
+  "triggerConfig": {
+    "labels": ["INBOX", "IMPORTANT"],
+    "from": "boss@company.com"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `userId` | Your user ID |
+| `triggerSlug` | Unique identifier for the trigger type |
+| `connectedAccountId` | Which connected account to monitor |
+| `triggerConfig` | Filtering criteria (optional) |
+
+## Available triggers by toolkit
+
+### Gmail
+- `gmail_new_email_received` - New email in inbox
+- `gmail_new_labeled_email` - Email with specific label
+- `gmail_new_starred_email` - Email marked as starred
+
+### Google Calendar
+- `googlecalendar_event_created` - New calendar event
+- `googlecalendar_event_updated` - Event time or details changed
+- `googlecalendar_event_cancelled` - Event cancelled
+
+### GitHub
+- `github_issue_assigned` - Issue assigned to you
+- `github_pull_request_review_requested` - PR review requested
+- `github_new_mention` - You're mentioned in issue/PR/comment
+
+### Linear
+- `linear_issue_created` - New issue in workspace
+- `linear_issue_updated` - Issue status or assignee changed
+- `linear_issue_assigned` - Issue assigned to you
+
+### Slack
+- `slack_new_message_in_channel` - Message in monitored channel
+- `slack_direct_message` - New DM received
+- `slack_mention` - You're mentioned
+
+## Trigger configuration
+
+Many triggers support filtering to reduce noise:
+
+<Accordion title="Gmail: Only urgent emails from specific senders">
+```json
+{
+  "triggerSlug": "gmail_new_email_received",
+  "triggerConfig": {
+    "from": ["important@client.com", "boss@company.com"],
+    "labels": ["IMPORTANT"],
+    "hasAttachment": true
+  }
+}
+```
+</Accordion>
+
+<Accordion title="GitHub: Issues in specific repository">
+```json
+{
+  "triggerSlug": "github_issue_assigned",
+  "triggerConfig": {
+    "repository": "myorg/myrepo",
+    "labels": ["bug", "urgent"]
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Calendar: Only events with specific attendees">
+```json
+{
+  "triggerSlug": "googlecalendar_event_created",
+  "triggerConfig": {
+    "attendeeEmails": ["team@company.com"],
+    "minDuration": 30  // Only meetings 30+ minutes
+  }
+}
+```
+</Accordion>
+
+## Webhook security
+
+Echo validates all incoming webhooks to ensure they're legitimate:
+
+```typescript
+// From backend/src/routes/triggers.ts (webhook endpoint)
+// Verify Composio webhook signature
+const signature = req.headers['x-composio-signature'];
+if (!verifyWebhookSignature(rawBody, signature)) {
+  return res.status(401).json({ error: 'Invalid signature' });
+}
+```
+
+<Warning>
+Never expose your webhook endpoint without signature verification. This prevents malicious actors from triggering fake events.
+</Warning>
+
+## Trigger processing flow
+
+When a webhook arrives:
+
+```typescript
+// Simplified from backend/src/services/composio/triggerProcessor.ts
+async function processTrigger(webhookData) {
+  // 1. Extract trigger details
+  const { userId, triggerSlug, payload } = webhookData;
+  
+  // 2. Gather user context
+  const userProfile = await getUserProfile(userId);
+  const relevantThoughts = await searchThoughts(userId, payload);
+  
+  // 3. Generate action proposal using AI
+  const proposal = await generateActionProposal({
+    trigger: payload,
+    context: relevantThoughts,
+    automationPosture: userProfile.automation_posture
+  });
+  
+  // 4. Create action log entry
+  const actionLog = await createActionLog({
+    userId,
+    request_type: 'trigger',
+    trigger_source: triggerSlug,
+    status: 'pending',
+    metadata: { proposedAction: proposal }
+  });
+  
+  // 5. Send push notification
+  await sendPushNotification(userId, {
+    title: 'New action proposed',
+    body: proposal.summary,
+    data: { actionLogId: actionLog.id }
+  });
+}
+```
+
+## Automation posture
+
+Your automation posture setting affects how triggers are handled:
+
+<CardGroup cols={2}>
+  <Card title="Ask first (default)" icon="hand">
+    Every trigger generates a pending action that requires your approval before execution
+  </Card>
+  <Card title="Auto-execute" icon="bolt">
+    Trusted action types execute automatically; high-risk actions still require approval
+  </Card>
+</CardGroup>
+
+See [Settings](/mobile/settings) to configure your automation posture.
+
+## Managing triggers
+
+### View active triggers
+
+```bash
+GET /api/triggers
+```
+
+Returns all your active trigger subscriptions across all toolkits.
+
+### Subscribe to trigger
+
+```bash
+POST /api/triggers/subscribe
+{
+  "triggerSlug": "gmail_new_email_received",
+  "connectedAccountId": "acc_123",
+  "triggerConfig": { ... }
+}
+```
+
+### Unsubscribe from trigger
+
+```bash
+DELETE /api/triggers/:triggerId
+```
+
+Stops webhook delivery for this trigger.
+
+## Trigger rate limits
+
+To prevent overwhelming you with notifications, Echo implements rate limiting:
+
+- **Per-trigger limit**: Max 10 actions per hour from a single trigger
+- **Global limit**: Max 50 actions per hour across all triggers
+- **Batch processing**: Similar triggers within 5 minutes are grouped
+
+<Tip>
+Use trigger configuration filters to reduce noise instead of relying on rate limits.
+</Tip>
+
+## Testing triggers
+
+### Development workflow
+
+1. **Expose backend via ngrok**:
+   ```bash
+   ngrok http 8000
+   ```
+
+2. **Update webhook URL in Composio**:
+   Navigate to Composio dashboard and set webhook URL to your ngrok endpoint
+
+3. **Trigger test event**:
+   Perform an action in the connected app (e.g., send yourself an email)
+
+4. **Verify processing**:
+   Check backend logs and mobile app for the proposed action
+
+### Webhook debugging
+
+View webhook delivery logs in the Composio dashboard:
+- Request/response payloads
+- Delivery timestamps
+- Error messages
+- Retry attempts
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Start narrow" icon="filter">
+    Use strict trigger configs initially, then loosen as you build trust
+  </Card>
+  <Card title="Monitor action logs" icon="chart-line">
+    Review which triggers generate useful vs. noisy actions
+  </Card>
+  <Card title="Disable when needed" icon="pause">
+    Temporarily disable triggers during vacations or focus time
+  </Card>
+  <Card title="Combine with thoughts" icon="brain">
+    Save context about projects/people to improve trigger action quality
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<Accordion title="Triggers not firing">
+**Possible causes:**
+- Webhook URL not configured in Composio
+- Connected account token expired
+- Trigger config too restrictive
+- Backend not reachable (check firewall/ngrok)
+
+**Solution:** Check Composio dashboard webhook logs for delivery errors.
+</Accordion>
+
+<Accordion title="Too many notifications">
+**Possible causes:**
+- Trigger config too broad
+- Multiple similar triggers active
+
+**Solution:** Add filters to trigger config or consolidate similar triggers.
+</Accordion>
+
+<Accordion title="Delayed action proposals">
+**Possible causes:**
+- Webhook delivery retry delays
+- Backend processing backlog
+- AI model latency
+
+**Solution:** Check backend logs for processing times and errors.
+</Accordion>
+
+## Related concepts
+
+<CardGroup cols={2}>
+  <Card title="Actions" icon="robot" href="/concepts/actions">
+    Learn how triggers lead to actions
+  </Card>
+  <Card title="Toolkits" icon="plug" href="/concepts/toolkits">
+    Explore which toolkits provide triggers
+  </Card>
+  <Card title="Backend webhooks" icon="webhook" href="/backend/integrations">
+    Webhook processing implementation details
+  </Card>
+  <Card title="API reference" icon="code" href="/api/triggers/subscribe-trigger">
+    Trigger subscription API endpoints
+  </Card>
+</CardGroup>

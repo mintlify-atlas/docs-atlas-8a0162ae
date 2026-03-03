@@ -1,0 +1,282 @@
+---
+title: "Backend Setup"
+description: "Install and configure the Echo backend server with all required services"
+---
+
+The Echo backend is a Node.js/Express server that handles authentication, database operations, and integrations with external services.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js** v18 or higher
+- **pnpm** package manager (`npm install -g pnpm`)
+- **Supabase project** for database and authentication
+- **Composio account** for tool integrations
+- **Supermemory account** for memory management
+- **AI provider API key** (OpenAI, Google, or Anthropic)
+
+## Tech Stack
+
+- **Runtime:** Node.js (v18+)
+- **Framework:** Express.js 5
+- **Language:** TypeScript
+- **Database:** PostgreSQL via Supabase
+- **ORM:** Drizzle ORM
+- **Authentication:** Supabase Auth
+- **Package Manager:** pnpm
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    Navigate to the backend directory:
+    ```bash
+    cd workspace/source/backend
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    ```bash
+    pnpm install
+    ```
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the backend directory:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit `.env` with your credentials:
+
+    ```env
+    # Server Configuration
+    PORT=8000
+    HOST=0.0.0.0
+    NODE_ENV=development
+
+    # Supabase
+    SUPABASE_URL=https://your-project.supabase.co
+    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+    DATABASE_URL=postgresql://postgres:[password]@[host]/postgres
+
+    # AI Model Provider (choose one)
+    AI_MODEL_PROVIDER=openai  # Options: openai, google, anthropic
+    OPENAI_API_KEY=sk-...
+    # GOOGLE_GENERATIVE_AI_API_KEY=your-key
+    # ANTHROPIC_API_KEY=your-key
+
+    # Supermemory
+    SUPERMEMORY_API_KEY=sm_your_api_key
+
+    # Composio
+    COMPOSIO_API_KEY=your-composio-key
+    COMPOSIO_WEBHOOK_SECRET=your-webhook-secret
+
+    # OAuth Configuration (optional)
+    COMPOSIO_CALLBACK_URL=http://localhost:8000/api/toolkits/oauth/callback
+    FRONTEND_URL=http://localhost:5173
+
+    # CORS (optional, defaults to *)
+    CORS_ORIGIN=http://localhost:3000
+    ```
+
+    <Info>
+      **Getting Supabase credentials:**
+      - Project URL: Settings → API
+      - Service Role Key: Settings → API (use Service Role, NOT anon key)
+      - Database URL: Settings → Database → Connection pooling URI
+    </Info>
+  </Step>
+
+  <Step title="Set up the database">
+    The database schema is managed with Drizzle ORM. Run migrations:
+
+    ```bash
+    pnpm db:push
+    ```
+
+    <Note>
+      Migrations are stored in the `drizzle/` directory and define all tables: profiles, items, collections, action_logs, user_push_tokens, and collection_items.
+    </Note>
+  </Step>
+
+  <Step title="Start the development server">
+    ```bash
+    pnpm dev
+    ```
+
+    The server will start at `http://localhost:8000`. You should see:
+    ```
+    Server is running on 0.0.0.0:8000
+    ```
+  </Step>
+</Steps>
+
+## Environment Variables Reference
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|--------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host/db` |
+| `SUPABASE_URL` | Your Supabase project URL | `https://xxx.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (not anon key) | `eyJhbGc...` |
+| `AI_MODEL_PROVIDER` | AI provider to use | `openai`, `google`, or `anthropic` |
+| `OPENAI_API_KEY` | OpenAI API key (if using OpenAI) | `sk-...` |
+| `SUPERMEMORY_API_KEY` | Supermemory API key | `sm_...` |
+| `COMPOSIO_API_KEY` | Composio API key | `...` |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|--------|
+| `PORT` | Server port | `8000` |
+| `HOST` | Server host | `0.0.0.0` |
+| `NODE_ENV` | Environment | `development` |
+| `CORS_ORIGIN` | Allowed CORS origins | `*` |
+| `COMPOSIO_CALLBACK_URL` | OAuth callback URL | Auto-detected |
+| `FRONTEND_URL` | Frontend redirect URL | `http://localhost:3000` |
+| `COMPOSIO_WEBHOOK_SECRET` | Webhook signature verification | - |
+
+## Available Commands
+
+```bash
+# Development
+pnpm dev              # Start dev server with hot reload
+pnpm start            # Start production server
+
+# Testing
+pnpm test             # Run API tests
+pnpm test-memory      # Test Supermemory integration
+
+# Database
+pnpm db:generate      # Generate migrations from schema changes
+pnpm db:migrate       # Run migrations via drizzle-kit
+pnpm db:push          # Push schema directly (dev only)
+pnpm db:studio        # Open Drizzle Studio (DB GUI)
+```
+
+## Project Structure
+
+```
+backend/
+├── src/
+│   ├── app.ts                    # Express app setup
+│   ├── server.ts                 # Server entry point
+│   ├── db/
+│   │   ├── index.ts              # Database connection
+│   │   └── schema/
+│   │       ├── schema.ts         # Table definitions
+│   │       └── relations.ts      # Relationships
+│   ├── middleware/
+│   │   └── auth.ts               # Authentication middleware
+│   ├── routes/
+│   │   ├── profiles.ts           # User profiles
+│   │   ├── items.ts              # Items management
+│   │   ├── actionLogs.ts         # Action logs
+│   │   ├── toolkits.ts           # Toolkit management
+│   │   ├── triggers.ts           # Trigger subscriptions
+│   │   └── pushTokens.ts         # Push notifications
+│   ├── services/
+│   │   ├── composio/             # Composio integration
+│   │   ├── supermemory.ts        # Supermemory integration
+│   │   └── notifications/        # Push notifications
+│   ├── types/                    # TypeScript types
+│   ├── validators/               # Zod validation schemas
+│   └── utils/                    # Helper functions
+├── drizzle/                      # Migration files
+├── drizzle.config.ts             # Drizzle configuration
+├── package.json
+└── tsconfig.json
+```
+
+## Health Check
+
+Verify the server is running:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-03-15T10:30:00.000Z"
+}
+```
+
+## Development Workflow
+
+<Steps>
+  <Step title="Make schema changes">
+    Edit `src/db/schema/schema.ts` to modify database tables.
+  </Step>
+
+  <Step title="Generate migration">
+    ```bash
+    pnpm db:generate
+    ```
+  </Step>
+
+  <Step title="Review migration">
+    Check the generated SQL in the `drizzle/` directory.
+  </Step>
+
+  <Step title="Apply migration">
+    ```bash
+    pnpm db:push
+    ```
+    <Warning>
+      Use `db:push` only in development. For production, use proper migration runners.
+    </Warning>
+  </Step>
+
+  <Step title="Update API endpoints">
+    Add or modify routes in `src/routes/` as needed.
+  </Step>
+
+  <Step title="Test locally">
+    ```bash
+    pnpm dev
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Database connection fails
+
+- Verify `DATABASE_URL` is correct
+- Check Supabase project is active
+- Ensure connection pooling is enabled in Supabase
+
+### Authentication errors
+
+- Confirm `SUPABASE_SERVICE_ROLE_KEY` is the Service Role key, not anon key
+- Verify `SUPABASE_URL` matches your project
+- Check token is passed as `Authorization: Bearer <token>`
+
+### Port already in use
+
+```bash
+# Change PORT in .env
+PORT=8001
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/backend/authentication">
+    Learn how Supabase Auth integration works
+  </Card>
+  <Card title="Database Schema" icon="database" href="/backend/database-schema">
+    Explore the complete database structure
+  </Card>
+  <Card title="Integrations" icon="puzzle-piece" href="/backend/integrations">
+    Set up Composio, Supermemory, and AI providers
+  </Card>
+</CardGroup>

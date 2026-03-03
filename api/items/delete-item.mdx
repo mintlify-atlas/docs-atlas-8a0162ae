@@ -1,0 +1,87 @@
+---
+title: "Delete Item"
+description: "Delete a thought item permanently"
+---
+
+## Endpoint
+
+<ParamField path="method" type="string">
+  DELETE
+</ParamField>
+
+<ParamField path="url" type="string">
+  `/api/items/:id`
+</ParamField>
+
+## Authentication
+
+This endpoint requires authentication. Include a valid Bearer token in the Authorization header.
+
+```bash
+Authorization: Bearer <your_access_token>
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  UUID of the item to delete
+</ParamField>
+
+## Response
+
+On successful deletion, this endpoint returns a `204 No Content` status with an empty response body.
+
+## Example Request
+
+```bash
+curl -X DELETE https://api.echo.app/api/items/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## Example Response
+
+```
+HTTP/1.1 204 No Content
+```
+
+## Error Responses
+
+<ResponseField name="401 Unauthorized" type="object">
+  Returned when authentication fails
+</ResponseField>
+
+<ResponseField name="404 Not Found" type="object">
+  Returned when the item doesn't exist or the user doesn't have permission to delete it
+  
+  <Expandable title="error response">
+    <ResponseField name="error" type="string">
+      "Not Found"
+    </ResponseField>
+    
+    <ResponseField name="message" type="string">
+      "Item not found or you don't have permission to delete it"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error" type="object">
+  Returned when server encounters an error
+  
+  <Expandable title="error response">
+    <ResponseField name="error" type="string">
+      "Internal Server Error"
+    </ResponseField>
+    
+    <ResponseField name="message" type="string">
+      Error message
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Notes
+
+- This operation is permanent and cannot be undone
+- The item is also deleted from Supermemory if it has a supermemoryId
+- Users can only delete their own items
+- If the item exists but belongs to another user, a 404 error is returned for security reasons
+- Associated data in collection_items junction table is automatically deleted due to cascade delete

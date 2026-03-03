@@ -1,0 +1,176 @@
+---
+title: Actions
+description: Learn how Echo executes multi-step tasks across your connected apps automatically
+---
+
+Actions are the core automation engine of Echo. They represent multi-step tasks that Echo executes in the background using your connected apps, always with your permission.
+
+## What are actions?
+
+An action is a sequence of operations that Echo performs to complete a meaningful task. Unlike traditional chatbots that only respond when asked, Echo proactively proposes actions based on activity in your connected apps.
+
+<CardGroup cols={2}>
+  <Card title="Proactive execution" icon="robot">
+    Echo monitors your connected apps and suggests actions automatically when relevant events occur
+  </Card>
+  <Card title="Multi-step workflows" icon="list-check">
+    Actions can involve multiple operations across different apps, like checking calendar availability and RSVPing
+  </Card>
+  <Card title="User control" icon="shield-check">
+    You decide whether to approve, modify, or reject every proposed action
+  </Card>
+  <Card title="Full transparency" icon="eye">
+    Complete audit trail of what Echo did, when, and why
+  </Card>
+</CardGroup>
+
+## How actions work
+
+<Steps>
+  <Step title="Trigger detection">
+    Echo receives a trigger from one of your connected apps (e.g., new calendar event, incoming email, GitHub issue)
+  </Step>
+  <Step title="Context gathering">
+    Echo analyzes the trigger, gathers relevant context from your Thoughts, and formulates a proposed action
+  </Step>
+  <Step title="User notification">
+    You receive a push notification with a preview of what Echo wants to do
+  </Step>
+  <Step title="User response">
+    You can approve, modify with additional instructions, or reject the action
+  </Step>
+  <Step title="Execution">
+    If approved, Echo executes the action using the Composio toolkit integrations
+  </Step>
+  <Step title="Completion report">
+    Echo reports back with what was accomplished and any results
+  </Step>
+</Steps>
+
+## Action lifecycle
+
+Every action moves through a series of states tracked in the action log:
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Action proposed, waiting for user response |
+| `ongoing` | Action approved and currently executing |
+| `completed` | Action finished successfully |
+| `failed` | Action encountered an error during execution |
+| `cancelled` | User rejected or cancelled the action |
+
+You can view the full history of actions in the mobile app's **Actions** tab.
+
+## Action metadata
+
+Each action log includes rich metadata stored as JSONB in the database:
+
+```typescript
+// From backend/src/db/schema/schema.ts:237
+metadata: jsonb("metadata") // Contains:
+  // - proposedAction: What Echo wants to do
+  // - reasoning: Why Echo thinks this action is needed
+  // - toolCalls: Specific API calls that will be made
+  // - results: Outcomes after execution
+  // - errors: Any issues encountered
+  // - conversationHistory: Full AI conversation context
+```
+
+## Request types
+
+Actions can be initiated in two ways:
+
+### Trigger-based (automatic)
+
+The most common type. Echo receives a webhook trigger from a connected app and proactively proposes an action:
+
+```json
+{
+  "request_type": "trigger",
+  "trigger_source": "gmail",
+  "action_name": "reply_to_email",
+  "toolkits_used": ["gmail", "googledrive"]
+}
+```
+
+### Chat-based (manual)
+
+You can also manually request actions through the chat interface:
+
+```json
+{
+  "request_type": "chat",
+  "trigger_source": "user_chat",
+  "request": "Schedule a meeting with the design team next week"
+}
+```
+
+## Automation posture
+
+<Info>
+Your automation posture controls how Echo handles proposed actions.
+</Info>
+
+You can configure this in [Settings](/mobile/settings):
+
+- **Ask first** (default): Echo always requests approval before executing actions
+- **Auto-execute**: Echo automatically executes approved action types without waiting for confirmation
+
+<Warning>
+Even with auto-execute enabled, Echo will still ask for approval on high-risk actions like deleting data or sending messages to new contacts.
+</Warning>
+
+## Multi-turn conversations
+
+Actions support interactive refinement. When you respond to an action with "Modify" and provide additional context, Echo:
+
+1. Preserves the conversation history
+2. Incorporates your feedback
+3. Proposes an updated action
+4. Waits for your approval again
+
+This allows for natural back-and-forth until the action is exactly what you want.
+
+## Example action flow
+
+<Accordion title="Real-world example: New GitHub issue assigned">
+**Trigger**: You're assigned a GitHub issue titled "Fix navigation bug on mobile"
+
+**Echo's analysis**:
+- Checks your calendar for available time slots
+- Reviews similar past issues from memory
+- Identifies relevant documentation in your Thoughts
+
+**Proposed action**:
+"I noticed you were assigned a new GitHub issue. I can:
+1. Block 2 hours on your calendar tomorrow at 2pm for focused work
+2. Create a linear task linked to the GitHub issue
+3. Add the related mobile docs from your saved thoughts to the task description
+
+Should I proceed?"
+
+**Your response**: "Yes, but make it 3 hours instead"
+
+**Execution**:
+- Creates calendar event (3 hours)
+- Creates Linear task with GitHub link
+- Attaches relevant documentation
+- Reports completion with links to created items
+</Accordion>
+
+## Related concepts
+
+<CardGroup cols={2}>
+  <Card title="Thoughts" icon="brain" href="/concepts/thoughts">
+    Learn how Thoughts provide context for smarter actions
+  </Card>
+  <Card title="Toolkits" icon="plug" href="/concepts/toolkits">
+    Explore the apps and services Echo can control
+  </Card>
+  <Card title="Triggers" icon="bolt" href="/concepts/triggers">
+    Understand how Echo detects when to propose actions
+  </Card>
+  <Card title="Managing actions" icon="list" href="/mobile/managing-actions">
+    View and manage actions in the mobile app
+  </Card>
+</CardGroup>

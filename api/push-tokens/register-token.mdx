@@ -1,0 +1,143 @@
+---
+title: "Register Push Token"
+description: "Register or update an Expo push token for the authenticated user"
+---
+
+## Endpoint
+
+<ParamField path="method" type="string">
+  POST
+</ParamField>
+
+<ParamField path="endpoint" type="string">
+  /api/push-tokens
+</ParamField>
+
+## Authentication
+
+This endpoint requires authentication. Include a valid access token in the Authorization header.
+
+## Request Body
+
+<ParamField body="expoPushToken" type="string" required>
+  The Expo push token for the device. Must be in the format `ExponentPushToken[...]` or `ExpoPushToken[...]`.
+</ParamField>
+
+<ParamField body="platform" type="string">
+  The platform of the device (e.g., "ios", "android").
+</ParamField>
+
+<ParamField body="deviceId" type="string">
+  A unique identifier for the device.
+</ParamField>
+
+## Response
+
+<ResponseField name="pushToken" type="object">
+  The registered push token object.
+
+  <Expandable title="pushToken properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the push token record.
+    </ResponseField>
+
+    <ResponseField name="userId" type="string">
+      The ID of the user who owns this push token.
+    </ResponseField>
+
+    <ResponseField name="expoPushToken" type="string">
+      The registered Expo push token.
+    </ResponseField>
+
+    <ResponseField name="platform" type="string" optional>
+      The platform of the device.
+    </ResponseField>
+
+    <ResponseField name="deviceId" type="string" optional>
+      The unique device identifier.
+    </ResponseField>
+
+    <ResponseField name="lastSeenAt" type="string">
+      Timestamp of when the token was last seen/updated.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      Timestamp of when the token was first registered.
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      Timestamp of when the token was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Behavior
+
+This endpoint uses upsert logic:
+- If the push token doesn't exist, it will be created
+- If the push token already exists, it will be updated with the new information
+- Stale tokens (not seen for 90 days by default) are automatically cleaned up
+
+## Example Request
+
+```bash
+curl -X POST https://api.echo.com/api/push-tokens \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "expoPushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+    "platform": "ios",
+    "deviceId": "device-uuid-here"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "pushToken": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "userId": "123e4567-e89b-12d3-a456-426614174000",
+    "expoPushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+    "platform": "ios",
+    "deviceId": "device-uuid-here",
+    "lastSeenAt": "2026-03-03T10:30:00.000Z",
+    "createdAt": "2026-03-01T08:15:00.000Z",
+    "updatedAt": "2026-03-03T10:30:00.000Z"
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request" type="object">
+  Returned when the request body is invalid or the push token format is incorrect.
+
+  <Expandable title="error object">
+    <ResponseField name="error" type="string">
+      Error type: "Bad Request"
+    </ResponseField>
+
+    <ResponseField name="message" type="string">
+      Detailed error message describing the validation failure.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="401 Unauthorized" type="object">
+  Returned when authentication fails or no token is provided.
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error" type="object">
+  Returned when the server encounters an error while processing the request.
+
+  <Expandable title="error object">
+    <ResponseField name="error" type="string">
+      Error type: "Internal Server Error"
+    </ResponseField>
+
+    <ResponseField name="message" type="string">
+      "Failed to register push token"
+    </ResponseField>
+  </Expandable>
+</ResponseField>

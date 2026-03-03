@@ -1,0 +1,260 @@
+---
+title: Managing Actions
+description: Review, approve, modify, and track multi-step tasks executed by Echo
+---
+
+Actions are the core of Echo's proactive assistance. Each action represents a multi-step task that Echo can execute on your behalf using your connected toolkits.
+
+## Understanding Actions
+
+An action is Echo's proposal to complete a task for you. For example:
+- Creating a Linear issue from a Slack conversation
+- Scheduling a meeting based on email context
+- Adding tasks to TickTick from meeting notes
+
+<Info>
+All actions use your connected toolkits with your explicit permission. Echo never acts without your approval (unless auto-execute is enabled).
+</Info>
+
+## Action Statuses
+
+Actions progress through several states:
+
+### Pending
+- Action is proposed and awaiting your response
+- Requires approval, modification, or rejection
+- Shows in the Home tab by default
+- Notification sent based on your preferences
+
+### Completed
+- Action was approved and executed successfully
+- Results are available in the action timeline
+- Can be reviewed for accuracy
+
+### Rejected
+- Action was declined by you
+- No changes were made to your tools
+- Provides feedback to Echo about unwanted actions
+
+### Failed
+- Action execution encountered an error
+- Details available in the action timeline
+- May require reconnecting a toolkit or manual intervention
+
+## Viewing Actions
+
+The Home tab displays your actions with filtering options:
+
+### Status Tabs
+Switch between action statuses:
+- **Pending**: Actions awaiting your decision
+- **Completed**: Successfully executed actions
+- **Rejected**: Declined action proposals
+- **Failed**: Actions that encountered errors
+
+### Action Cards
+
+Each action card shows:
+- **Toolkit Logo**: Icon indicating which tool triggered the action
+- **Title**: Brief description of the proposed task
+- **Description**: Additional context about what Echo will do
+- **Status Indicator**: Color-coded dot showing current state
+- **Timestamp**: When the action was created
+
+<Tip>
+Tap any action card to view the full conversation timeline and execution details.
+</Tip>
+
+## Action Detail View
+
+Tapping an action opens the detail screen with a conversation timeline:
+
+### Timeline Elements
+
+**User Messages**
+- Your input or context that triggered the action
+- Shows the original request or situation
+
+**Assistant Responses**
+- Echo's understanding and proposed action
+- Detailed explanation of what will be executed
+- Step-by-step plan if multi-stage
+
+**Tool Calls**
+- Specific API operations Echo will perform
+- Parameters and data that will be used
+- Results from completed executions
+
+### Execution Details
+
+For completed actions, you can see:
+- Which tools were accessed
+- What data was created or modified
+- Links to created items (issues, tasks, events)
+- Any error messages if execution failed
+
+## Responding to Pending Actions
+
+When viewing a pending action, you have three options in the floating action bar:
+
+<Steps>
+  <Step title="Approve (Checkmark Icon)">
+    Execute the action exactly as proposed by Echo.
+    
+    - Action moves to execution queue
+    - You'll receive a notification when complete
+    - Results appear in the timeline
+    - Action status changes to "Completed" or "Failed"
+  </Step>
+
+  <Step title="Modify (Edit Icon)">
+    Request changes to the action before execution.
+    
+    - Modal appears with text input
+    - Describe your modifications (e.g., "Change priority to High")
+    - Echo processes your feedback
+    - Updated action appears as a new pending item
+  </Step>
+
+  <Step title="Reject (X Icon)">
+    Decline the action completely.
+    
+    - Confirmation dialog appears
+    - Action moves to "Rejected" status
+    - No changes are made to your tools
+    - Helps Echo learn your preferences
+  </Step>
+</Steps>
+
+## Modifying Actions
+
+The modify feature allows you to refine Echo's proposal:
+
+### When to Modify
+- Action is mostly correct but needs adjustments
+- Missing important context or details
+- Priority, timing, or assignee needs changes
+- Want to add or remove specific steps
+
+### How to Modify
+
+<Steps>
+  <Step title="Tap the Edit Button">
+    The modification modal slides up from the bottom.
+  </Step>
+
+  <Step title="Describe Your Changes">
+    Enter natural language feedback, such as:
+    - "Add a due date of next Friday"
+    - "Assign to Sarah instead"
+    - "Change the priority to urgent"
+    - "Include the budget details from the email"
+  </Step>
+
+  <Step title="Submit Modification">
+    Tap "Submit" and Echo will process your feedback.
+  </Step>
+
+  <Step title="Review Updated Action">
+    A new pending action appears with your modifications applied.
+  </Step>
+</Steps>
+
+<Note>
+Modifications create a new action proposal rather than editing the existing one. This preserves the conversation history.
+</Note>
+
+## Multi-Turn Conversations
+
+Some actions involve back-and-forth dialogue with Echo:
+
+- Actions with multiple modification rounds
+- Clarification questions from Echo
+- Progressive refinement of complex tasks
+
+The timeline shows the full conversation history, making it easy to track how the action evolved.
+
+## Pull to Refresh
+
+Keep your actions list up to date:
+1. Pull down on the actions list
+2. Release to trigger refresh
+3. Latest actions and status updates appear
+
+<Tip>
+Echo automatically refreshes when you return to the Home tab, so manual refresh is rarely needed.
+</Tip>
+
+## Load More Actions
+
+Actions are paginated for performance:
+- Initial load shows 10 most recent actions
+- Scroll to bottom to see "Load More" button
+- Tap to fetch the next page
+- Repeat to view older actions
+
+## Action Notifications
+
+Depending on your notification preferences, you'll receive alerts for:
+
+### Pending Actions (Ask First Mode)
+- New action requires your approval
+- Tap notification to open action detail
+- Approve, modify, or reject directly
+
+### Completed Actions
+- Action executed successfully
+- Tap to view results and timeline
+
+### Failed Actions
+- Action encountered an error
+- Tap to view error details and retry if possible
+
+<Warning>
+If you enabled auto-execute mode, Echo will execute approved action types without waiting for confirmation. Monitor notifications carefully.
+</Warning>
+
+## Best Practices
+
+### Review Thoroughly
+- Read the full action description before approving
+- Check which tools and data will be accessed
+- Verify the proposed action matches your intent
+
+### Use Modify for Refinement
+- Don't reject actions that are close to correct
+- Provide specific, actionable feedback
+- Include context that Echo might have missed
+
+### Learn from History
+- Review completed actions periodically
+- Check if Echo's understanding aligns with your needs
+- Adjust your connected toolkits if needed
+
+### Keep Toolkits Connected
+- Failed actions often result from expired credentials
+- Visit Settings to refresh toolkit connections
+- See [Connecting Toolkits](/mobile/connecting-toolkits) for details
+
+## Troubleshooting
+
+### Actions Not Appearing
+- Ensure toolkits are connected and authorized
+- Check that Echo has context to work with (thoughts, emails, etc.)
+- Verify notification permissions are enabled
+
+### Failed Actions
+- Review error message in action timeline
+- Reconnect the affected toolkit if credentials expired
+- Contact support if errors persist
+
+### Can't Approve Action
+- Check your internet connection
+- Ensure you're signed in
+- Try closing and reopening the action detail
+
+## Next Steps
+
+- [Managing Thoughts](/mobile/managing-thoughts) - Add context for better actions
+- [Connecting Toolkits](/mobile/connecting-toolkits) - Enable more action types
+- [Settings](/mobile/settings) - Adjust automation and notification preferences

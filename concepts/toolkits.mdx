@@ -1,0 +1,243 @@
+---
+title: Toolkits
+description: Connect your favorite apps and services so Echo can execute actions across them
+---
+
+Toolkits are the integrations that power Echo's ability to perform actions. Each toolkit represents a connected app or service (like Gmail, GitHub, Calendar) that Echo can interact with on your behalf.
+
+## What are toolkits?
+
+A toolkit is a Composio integration that gives Echo access to specific app functionality through OAuth or API key authentication. When you connect a toolkit, you grant Echo permission to:
+
+- Read data from the app (e.g., calendar events, emails)
+- Perform actions (e.g., send email, create task, update issue)
+- Subscribe to triggers (e.g., new email received, meeting scheduled)
+
+<Info>
+Echo uses [Composio](https://composio.dev) to manage toolkit integrations, which provides 150+ pre-built app connections with OAuth handling.
+</Info>
+
+## Available toolkits
+
+Echo supports a wide range of productivity and development tools:
+
+<CardGroup cols={3}>
+  <Card title="Gmail" icon="envelope">
+    Read, send, and manage emails
+  </Card>
+  <Card title="Google Calendar" icon="calendar">
+    View and create calendar events
+  </Card>
+  <Card title="Google Drive" icon="folder">
+    Access and share documents
+  </Card>
+  <Card title="GitHub" icon="github">
+    Manage issues, PRs, and repos
+  </Card>
+  <Card title="Linear" icon="list-check">
+    Create and update tasks
+  </Card>
+  <Card title="Slack" icon="slack">
+    Send messages and read channels
+  </Card>
+  <Card title="TickTick" icon="circle-check">
+    Manage todos and projects
+  </Card>
+  <Card title="Notion" icon="book">
+    Create and update pages
+  </Card>
+  <Card title="And 140+ more" icon="ellipsis">
+    Via Composio integration
+  </Card>
+</CardGroup>
+
+## How toolkits work
+
+<Steps>
+  <Step title="Browse available toolkits">
+    Open the **Toolkits** tab in the mobile app to see all available integrations
+  </Step>
+  <Step title="Connect via OAuth">
+    Tap **Connect** to initiate the OAuth flow and authenticate with the service
+  </Step>
+  <Step title="Grant permissions">
+    Choose which triggers to subscribe to (e.g., "New Email", "Calendar Event Updated")
+  </Step>
+  <Step title="Enable/disable">
+    Toggle toolkits on or off without disconnecting completely
+  </Step>
+  <Step title="Use in actions">
+    Echo automatically uses connected toolkits when proposing and executing actions
+  </Step>
+</Steps>
+
+## Toolkit lifecycle
+
+Each toolkit connection has a state:
+
+| State | Description |
+|-------|-------------|
+| **Not connected** | Toolkit available but not authenticated |
+| **Connected & enabled** | Active and available for actions |
+| **Connected & disabled** | Authenticated but temporarily paused |
+| **Expired** | OAuth token expired, needs re-authentication |
+
+## OAuth flow
+
+When you connect a toolkit, Echo handles OAuth securely:
+
+```typescript
+// From backend/src/routes/toolkits.ts:127
+POST /api/toolkits/:slug/enable
+```
+
+1. **Initiate OAuth**: Backend generates OAuth URL for the toolkit
+2. **User authentication**: You're redirected to the service to grant permissions
+3. **Callback handling**: Service redirects back to Echo with authorization code
+4. **Token storage**: Composio stores access/refresh tokens securely
+5. **Connection active**: Toolkit is now available for actions
+
+<Warning>
+Echo never stores your passwords. All authentication uses OAuth tokens that can be revoked at any time.
+</Warning>
+
+## Toolkit permissions
+
+Each toolkit requests specific permissions (scopes) during OAuth:
+
+**Gmail example:**
+- `gmail.readonly` - Read email messages
+- `gmail.send` - Send emails on your behalf
+- `gmail.modify` - Archive, delete, or label messages
+
+**GitHub example:**
+- `repo` - Access repository data
+- `issues` - Create and update issues
+- `pull_requests` - Manage pull requests
+
+<Tip>
+You can review and revoke permissions at any time from your account settings in the connected service.
+</Tip>
+
+## Using toolkits in actions
+
+When Echo proposes an action, it automatically determines which toolkits are needed:
+
+```json
+{
+  "action_name": "schedule_meeting_and_prepare_agenda",
+  "toolkits_used": ["googlecalendar", "googledrive", "gmail"]
+}
+```
+
+If a required toolkit isn't connected, Echo will:
+1. Notify you which toolkit is needed
+2. Provide a link to connect it
+3. Pause the action until connection is complete
+
+## Toolkit triggers
+
+Toolkits provide triggers that start automated workflows:
+
+```typescript
+// Example trigger configuration
+{
+  "triggerSlug": "gmail_new_email_received",
+  "connectedAccountId": "<your-gmail-connection>",
+  "triggerConfig": {
+    "labels": ["IMPORTANT"],
+    "from": "specific-sender@example.com"
+  }
+}
+```
+
+See [Triggers](/concepts/triggers) for more details.
+
+## Managing connected accounts
+
+Some toolkits support multiple accounts:
+
+- Connect multiple Gmail accounts
+- Switch between GitHub organizations
+- Use personal and work calendars
+
+Each account gets a unique `connectedAccountId` used for actions and triggers.
+
+## Toolkit-specific features
+
+### Gmail
+- Smart email filtering by sender, subject, labels
+- Draft composition with AI-generated content
+- Automatic archiving and labeling
+
+### Google Calendar
+- Availability checking before scheduling
+- Meeting link generation (Meet, Zoom)
+- Recurring event management
+
+### GitHub
+- Issue triage and labeling
+- PR review assignment
+- Project board automation
+
+### Linear
+- Task creation from emails or messages
+- Status updates based on GitHub PR state
+- Automatic project assignment
+
+## Security and privacy
+
+<CardGroup cols={2}>
+  <Card title="Scoped permissions" icon="shield-check">
+    Only request the minimum permissions needed for functionality
+  </Card>
+  <Card title="Token encryption" icon="lock">
+    OAuth tokens stored encrypted by Composio
+  </Card>
+  <Card title="User control" icon="user-shield">
+    Enable, disable, or revoke access anytime
+  </Card>
+  <Card title="Audit trail" icon="file-lines">
+    All toolkit actions logged in action history
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<Accordion title="Toolkit shows as expired">
+OAuth tokens typically expire after 60-90 days. Simply:
+1. Tap the toolkit in the app
+2. Select **Reconnect**
+3. Re-authenticate via OAuth
+</Accordion>
+
+<Accordion title="Action failed due to missing permissions">
+The toolkit may need additional scopes:
+1. Disconnect the toolkit
+2. Reconnect and grant all requested permissions
+3. Retry the action
+</Accordion>
+
+<Accordion title="Toolkit not receiving triggers">
+Check webhook configuration:
+1. Verify triggers are enabled in toolkit settings
+2. Ensure webhook URL is set in Composio dashboard
+3. Test with a manual trigger event
+</Accordion>
+
+## Related concepts
+
+<CardGroup cols={2}>
+  <Card title="Triggers" icon="bolt" href="/concepts/triggers">
+    Learn how triggers from toolkits start actions
+  </Card>
+  <Card title="Connecting toolkits" icon="plug" href="/mobile/connecting-toolkits">
+    Step-by-step guide to connecting apps
+  </Card>
+  <Card title="Backend integration" icon="code" href="/backend/integrations">
+    Composio integration architecture
+  </Card>
+  <Card title="Actions" icon="robot" href="/concepts/actions">
+    See how toolkits power action execution
+  </Card>
+</CardGroup>

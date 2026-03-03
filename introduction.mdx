@@ -1,0 +1,118 @@
+---
+title: Introduction
+description: Welcome to Echo - A proactive AI assistant that executes tasks without you having to ask
+---
+
+Echo is a proactive AI assistant that connects to your favorite tools, learns from your behavior, and executes multi-step tasks automatically—always with your permission.
+
+## What makes Echo different?
+
+Most chatbots are reactive. You ask, they respond. Echo is different. Think of it as an ambient, proactive virtual assistant that:
+
+- **Listens continuously** to activity in your connected apps
+- **Proposes actions** based on real-time events and context
+- **Executes automatically** (with your approval) across multiple tools
+- **Learns from you** using Thoughts—notes, links, and memories you add
+
+<Note>
+Echo uses **Actions** for automated task execution and **Thoughts** for long-term context and personalization.
+</Note>
+
+## Core concepts
+
+<CardGroup cols={2}>
+  <Card title="Actions" icon="bolt" href="/concepts/actions">
+    Multi-step tasks executed in the background using your connected apps. Echo proposes actions automatically based on triggers.
+  </Card>
+  
+  <Card title="Thoughts" icon="brain" href="/concepts/thoughts">
+    Links, notes, screenshots, or voice notes you add. Echo remembers and uses them as long-term context to improve actions.
+  </Card>
+  
+  <Card title="Toolkits" icon="puzzle-piece" href="/concepts/toolkits">
+    Integrations with everyday apps like Mail, Calendar, Drive, and To-Do. Connect with fine-grained OAuth permissions.
+  </Card>
+  
+  <Card title="Triggers" icon="webhook" href="/concepts/triggers">
+    Events from your connected apps that activate Echo. When a trigger fires, Echo analyzes context and proposes actions.
+  </Card>
+</CardGroup>
+
+## Example workflow
+
+Here's how Echo works in practice:
+
+<Steps>
+  <Step title="Connect your apps">
+    During onboarding, connect everyday apps like Gmail, Google Calendar, Google Drive, and Todoist. You have full control to customize, modify, or revoke access anytime.
+  </Step>
+  
+  <Step title="Trigger fires">
+    When activity occurs in a connected app (e.g., a new calendar event), Echo receives a trigger notification.
+  </Step>
+  
+  <Step title="Echo analyzes context">
+    Echo gathers relevant context from your connected apps and your saved Thoughts to understand what action makes sense.
+  </Step>
+  
+  <Step title="Action proposal">
+    Echo proposes a multi-step action, such as checking availability, RSVPing to the event, and preparing a meeting deck using past documents.
+  </Step>
+  
+  <Step title="You approve or modify">
+    You receive a notification with the proposed action. Approve it, reject it, or provide additional context to refine it.
+  </Step>
+  
+  <Step title="Echo executes">
+    Once approved, Echo executes the action across multiple tools automatically and reports back with the results.
+  </Step>
+</Steps>
+
+<Info>
+You can configure Echo to **ask first** (propose actions and wait for approval) or **auto-execute** (run actions immediately based on your preferences).
+</Info>
+
+## Tech stack
+
+Echo is built with modern technologies for performance and scalability:
+
+- **Frontend**: React Native with Expo, TypeScript, NativeWind (Tailwind CSS)
+- **State Management**: Zustand (local UI + auth), TanStack Query (data fetching)
+- **Backend**: Node.js, Express.js, TypeScript, Drizzle ORM
+- **Database**: PostgreSQL via Supabase
+- **Authentication**: Supabase Auth
+- **Integrations**: Composio (OAuth + tool execution), Supermemory (memory management)
+- **AI Models**: Support for OpenAI, Google Gemini, and Anthropic Claude
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Set up Echo locally in under 10 minutes and execute your first action.
+  </Card>
+  
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand how Echo processes triggers, manages state, and executes actions.
+  </Card>
+</CardGroup>
+
+## Key features
+
+### Proactive automation
+Echo doesn't wait for commands. It monitors your connected apps and proactively suggests actions based on real-time events.
+
+### Cross-app workflows
+Execute multi-step tasks that span multiple applications. Echo handles OAuth, API calls, and error handling automatically.
+
+### Personalized context
+Thoughts continuously augment Echo's understanding, guiding and refining actions over time based on your preferences and history.
+
+### Fine-grained permissions
+Connect apps with precise OAuth scopes. Modify or revoke permissions anytime from the Toolkits screen.
+
+### Multi-turn conversations
+Refine actions through natural conversation. Echo maintains context across multiple turns for complex workflows.
+
+<Tip>
+Start by connecting 2-3 apps you use daily, then add a few Thoughts about your preferences. Echo will learn your workflow patterns quickly.
+</Tip>

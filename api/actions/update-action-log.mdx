@@ -1,0 +1,296 @@
+---
+title: "Update Action Log"
+description: "Update an action log's status, metadata, or respond to pending actions"
+---
+
+## Endpoint
+
+```
+PATCH /api/action-logs/:id
+```
+
+## Authentication
+
+This endpoint requires authentication. Include a valid JWT token in the Authorization header.
+
+```
+Authorization: Bearer <token>
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  UUID of the action log to update. Must be a valid UUID format.
+</ParamField>
+
+## Request Body
+
+All fields are optional, but at least one should be provided.
+
+<ParamField body="status" type="string">
+  Update the action status. Must be one of: `pending`, `ongoing`, `completed`, `failed`, `cancelled`
+  
+  <Expandable title="Status Transition Rules">
+    - Cannot change status from terminal states (`completed`, `failed`, `cancelled`)
+    - Terminal states are final and cannot be modified
+  </Expandable>
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Update or merge custom metadata. Provided fields will be merged with existing metadata.
+</ParamField>
+
+<ParamField body="executionId" type="string">
+  Update the execution ID
+</ParamField>
+
+<ParamField body="additionalContext" type="string">
+  Update additional context information
+</ParamField>
+
+<ParamField body="toolkitsUsed" type="array">
+  Update the array of toolkit slugs. Each slug must match format `^[a-z0-9]+$`.
+  
+  <Expandable title="Validation">
+    The API validates that all requested toolkits are enabled and connected for the authenticated user.
+  </Expandable>
+</ParamField>
+
+<ParamField body="userResponse" type="string">
+  Respond to a pending action. Must be one of: `approve`, `reject`, `modify`
+  
+  <Expandable title="User Response Behavior">
+    **Important**: This field triggers special workflow processing:
+    
+    - **approve**: Continues AI conversation with approval and executes the action
+    - **reject**: Immediately cancels the action (status becomes `cancelled`)
+    - **modify**: Continues AI conversation with modification instructions
+    
+    **Requirements**:
+    - Can only be used on actions with `pending` status
+    - Returns immediately with `ongoing` status for approve/modify
+    - AI processing happens asynchronously in the background
+    - When `userResponse` is `modify`, `modificationText` is required
+    
+    **After Processing**:
+    - If action auto-executes: status becomes `completed`
+    - If more input needed: status returns to `pending` and user receives notification
+    - If error occurs: status becomes `failed`
+  </Expandable>
+</ParamField>
+
+<ParamField body="modificationText" type="string">
+  Required when `userResponse` is `modify`. Contains the user's modification instructions for the AI.
+</ParamField>
+
+## Response
+
+<ResponseField name="log" type="object">
+  The updated action log object
+  
+  <Expandable title="Action Log Properties">
+    <ResponseField name="id" type="string">
+      Unique UUID identifier
+    </ResponseField>
+    
+    <ResponseField name="userId" type="string">
+      ID of the user
+    </ResponseField>
+    
+    <ResponseField name="requestType" type="string">
+      Type of request: `chat` or `trigger`
+    </ResponseField>
+    
+    <ResponseField name="triggerSource" type="string">
+      Source that triggered the action
+    </ResponseField>
+    
+    <ResponseField name="actionName" type="string">
+      Name of the action
+    </ResponseField>
+    
+    <ResponseField name="executionId" type="string" nullable>
+      Execution ID
+    </ResponseField>
+    
+    <ResponseField name="toolkitsUsed" type="array">
+      Array of toolkit slugs
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Updated status
+    </ResponseField>
+    
+    <ResponseField name="request" type="string" nullable>
+      Original request text
+    </ResponseField>
+    
+    <ResponseField name="additionalContext" type="string" nullable>
+      Additional context
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object" nullable>
+      Updated metadata object
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of creation
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp of last update
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Status Codes
+
+- `200` - Success
+- `400` - Bad request (validation errors, invalid status transition, or toolkit not enabled)
+- `401` - Unauthorized (missing or invalid authentication)
+- `404` - Action log not found or does not belong to authenticated user
+- `500` - Internal server error
+
+## Example: Standard Update
+
+```bash
+curl -X PATCH https://api.echo.ai/api/action-logs/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "completed",
+    "metadata": {
+      "completedBy": "system",
+      "executionTime": 1234
+    }
+  }'
+```
+
+## Example: Approve Pending Action
+
+```bash
+curl -X PATCH https://api.echo.ai/api/action-logs/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userResponse": "approve"
+  }'
+```
+
+## Example: Modify Pending Action
+
+```bash
+curl -X PATCH https://api.echo.ai/api/action-logs/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userResponse": "modify",
+    "modificationText": "Actually, create the issue with high priority and assign it to @johnsmith"
+  }'
+```
+
+## Example: Reject Pending Action
+
+```bash
+curl -X PATCH https://api.echo.ai/api/action-logs/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userResponse": "reject"
+  }'
+```
+
+## Example Response (Standard Update)
+
+```json
+{
+  "log": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "userId": "user_123456",
+    "requestType": "trigger",
+    "triggerSource": "github_webhook",
+    "actionName": "Create GitHub issue",
+    "executionId": "exec_456",
+    "toolkitsUsed": ["github"],
+    "status": "completed",
+    "request": "Create an issue for bug found in production",
+    "additionalContext": "Error occurred in user authentication flow",
+    "metadata": {
+      "completedBy": "system",
+      "executionTime": 1234
+    },
+    "createdAt": "2026-03-03T10:30:00.000Z",
+    "updatedAt": "2026-03-03T10:35:00.000Z"
+  }
+}
+```
+
+## Example Response (Approve - Immediate)
+
+```json
+{
+  "log": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "userId": "user_123456",
+    "requestType": "trigger",
+    "triggerSource": "github_webhook",
+    "actionName": "Create GitHub issue",
+    "executionId": "exec_456",
+    "toolkitsUsed": ["github"],
+    "status": "ongoing",
+    "request": "Create an issue for bug found in production",
+    "additionalContext": "Error occurred in user authentication flow",
+    "metadata": {
+      "userResponse": "approve",
+      "respondedAt": "2026-03-03T10:35:00.000Z"
+    },
+    "createdAt": "2026-03-03T10:30:00.000Z",
+    "updatedAt": "2026-03-03T10:35:00.000Z"
+  }
+}
+```
+
+## Error Responses
+
+### Cannot Respond to Non-Pending Action
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Cannot respond to action with status 'completed'. Only 'pending' actions can be responded to."
+}
+```
+
+### Invalid Status Transition
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Cannot change status from terminal state completed"
+}
+```
+
+### Missing Modification Text
+
+```json
+{
+  "error": "Bad Request",
+  "message": "modificationText is required when userResponse is 'modify'"
+}
+```
+
+### Toolkit Not Enabled
+
+```json
+{
+  "error": "Bad Request",
+  "message": "One or more requested toolkits are not enabled or connected for this user."
+}
+```
+
+## Notes
+
+- The endpoint only updates action logs that belong to the authenticated user
+- When using `userResponse`, the API returns immediately with `ongoing` status while processing happens asynchronously
+- The final status after async processing will be `completed`, `pending`, or `failed`
+- Push notifications are sent when async processing results in a new `pending` status requiring user input

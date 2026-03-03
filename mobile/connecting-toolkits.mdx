@@ -1,0 +1,340 @@
+---
+title: Connecting Toolkits
+description: Integrate productivity tools to enable Echo's proactive actions
+---
+
+Toolkits are the integrations that allow Echo to perform actions on your behalf. By connecting your favorite productivity tools, you enable Echo to automate tasks across your entire workflow.
+
+## What Are Toolkits?
+
+Toolkits are pre-built integrations with popular productivity services:
+- **Communication**: Slack, email platforms
+- **Project Management**: Linear, Asana
+- **Task Management**: TickTick, Todoist
+- **Development**: GitHub, GitLab
+- **Calendar**: Google Calendar, Outlook
+
+<Info>
+Each toolkit requires OAuth authorization. Echo never stores your passwords—only secure access tokens.
+</Info>
+
+## Viewing Toolkits
+
+The Toolkits tab shows your integration status:
+
+### Connected Section
+Displays all toolkits you've authorized:
+- Toolkit logo and name
+- "Configure" button for settings
+- Visual card layout in a grid
+
+### Available Section
+Shows toolkits you can connect:
+- Toolkits not yet authorized
+- Organized by popularity and relevance
+- "Connect" button to start authorization
+
+<Tip>
+Pull down to refresh your toolkits list and sync connection status.
+</Tip>
+
+## Connecting a Toolkit
+
+Add a new integration to unlock more actions:
+
+<Steps>
+  <Step title="Browse Available Toolkits">
+    In the Toolkits tab, scroll to the "Available" section to see unconnected integrations.
+  </Step>
+
+  <Step title="Select a Toolkit">
+    Tap the toolkit card you want to connect (e.g., "Linear").
+  </Step>
+
+  <Step title="Review Permissions">
+    The toolkit detail screen explains:
+    - What data Echo will access
+    - What actions Echo can perform
+    - Privacy and security information
+  </Step>
+
+  <Step title="Authorize Access">
+    Tap "Connect" to begin OAuth flow:
+    - Opens the service's authorization page
+    - Sign in to your account if needed
+    - Review requested permissions
+    - Tap "Authorize" or "Allow"
+  </Step>
+
+  <Step title="Return to Echo">
+    After authorization:
+    - You're redirected back to Echo
+    - Toolkit moves to "Connected" section
+    - Success modal confirms connection
+  </Step>
+</Steps>
+
+<Note>
+Some toolkits may require additional configuration (workspace selection, team choice) after initial authorization.
+</Note>
+
+## Recommended Toolkits
+
+During onboarding, Echo suggests toolkits based on your persona:
+
+### For Developers
+- **Linear**: Issue tracking and project management
+- **Slack**: Team communication and collaboration
+- **GitHub**: Code repository and pull requests
+
+### For Founders/Managers
+- **Linear**: Project planning and task assignment
+- **Slack**: Team coordination
+- **Google Calendar**: Meeting scheduling
+
+### For Personal Productivity
+- **TickTick**: Task and habit tracking
+- **Google Calendar**: Time management
+- **Notion**: Notes and documentation
+
+<Tip>
+Start with 2-3 core toolkits before adding more. This helps you understand Echo's behavior patterns.
+</Tip>
+
+## Toolkit Configuration
+
+After connecting, configure toolkit-specific settings:
+
+<Steps>
+  <Step title="Open Toolkit Settings">
+    In the Connected section, tap "Configure" on any toolkit card.
+  </Step>
+
+  <Step title="Review Connection Status">
+    The detail screen shows:
+    - Authorization status (connected/expired)
+    - Connected account information
+    - Last sync timestamp
+  </Step>
+
+  <Step title="Adjust Preferences">
+    Configure toolkit-specific options:
+    - **Scope**: Which workspaces or teams to access
+    - **Triggers**: What events should create actions
+    - **Defaults**: Preferred assignees, labels, priorities
+  </Step>
+
+  <Step title="Save Changes">
+    Tap "Save" to apply your configuration.
+  </Step>
+</Steps>
+
+### Common Configuration Options
+
+**Workspace/Team Selection**
+- Choose which workspace or team Echo should use
+- Some toolkits support multiple workspaces
+- Change anytime if your team structure updates
+
+**Action Triggers**
+- Enable or disable specific trigger types
+- Control what kinds of actions Echo can propose
+- Fine-tune relevance of proposed actions
+
+**Default Values**
+- Set preferred project, label, or status
+- Assign default owners or teams
+- Configure priority levels
+
+## Disconnecting Toolkits
+
+Remove a toolkit if you no longer use the service:
+
+<Steps>
+  <Step title="Open Toolkit Settings">
+    Tap "Configure" on the connected toolkit.
+  </Step>
+
+  <Step title="Scroll to Disconnect">
+    At the bottom of the settings screen, find "Disconnect" button.
+  </Step>
+
+  <Step title="Confirm Removal">
+    Tap "Disconnect" and confirm in the alert dialog.
+  </Step>
+
+  <Step title="Revoke on Service">
+    For complete removal:
+    - Visit the service's settings (e.g., Linear settings)
+    - Navigate to "Authorized Applications"
+    - Revoke Echo's access
+  </Step>
+</Steps>
+
+<Warning>
+Disconnecting a toolkit will prevent Echo from creating actions related to that service. Existing actions remain in your history.
+</Warning>
+
+## Reconnecting Expired Toolkits
+
+Authorization tokens can expire over time:
+
+### Signs of Expiration
+- Actions fail with "unauthorized" errors
+- Toolkit shows "Connection Expired" badge
+- Notification about toolkit issues
+
+### Reconnection Process
+
+<Steps>
+  <Step title="Notice Expiration">
+    Echo notifies you when a toolkit needs reauthorization.
+  </Step>
+
+  <Step title="Open Toolkit Settings">
+    Tap the notification or navigate to Toolkits > Configure.
+  </Step>
+
+  <Step title="Tap Reconnect">
+    The "Reconnect" button appears for expired toolkits.
+  </Step>
+
+  <Step title="Reauthorize">
+    Complete OAuth flow again:
+    - Sign in to the service if needed
+    - Approve permissions
+    - Return to Echo
+  </Step>
+</Steps>
+
+<Tip>
+Keep toolkits connected by responding to expiration notifications promptly. This ensures uninterrupted action execution.
+</Tip>
+
+## Understanding Toolkit Permissions
+
+Each toolkit requests specific permissions:
+
+### Read Permissions
+- View issues, tasks, or events
+- Access workspace or team information
+- Read user profiles and settings
+
+### Write Permissions
+- Create issues, tasks, or events
+- Update existing items
+- Add comments or reactions
+
+### Webhook Permissions
+- Receive real-time notifications
+- Trigger actions based on events
+- Sync status changes
+
+<Note>
+Echo only requests the minimum permissions needed for its actions. You can review exact permissions during OAuth authorization.
+</Note>
+
+## Privacy and Security
+
+### Data Storage
+- Echo stores only access tokens, not passwords
+- Tokens are encrypted at rest
+- Communication uses HTTPS/TLS
+
+### Data Access
+- Echo accesses data only when proposing or executing actions
+- No background data collection
+- You control which workspaces/teams are accessed
+
+### Token Management
+- Tokens refresh automatically when possible
+- Expired tokens require manual reauthorization
+- Revoke access anytime from toolkit settings
+
+<Warning>
+Never share your Echo account credentials. Each user should have their own Echo account with their own toolkit authorizations.
+</Warning>
+
+## Toolkit-Specific Guides
+
+### Linear
+- Connect your Linear workspace
+- Echo can create issues, update status, add comments
+- Configure default project and team
+- Set preferred labels and priorities
+
+### Slack
+- Authorize Echo for your Slack workspace
+- Echo can send messages, create reminders
+- Configure which channels to monitor
+- Set notification preferences
+
+### TickTick
+- Connect your TickTick account
+- Echo can create tasks, set due dates
+- Choose default list or project
+- Configure priority levels
+
+### GitHub
+- Authorize repository access
+- Echo can create issues, update PRs
+- Select which repositories to include
+- Configure default assignees
+
+<Info>
+Each toolkit has unique capabilities. Explore the toolkit detail screen to learn what actions are possible.
+</Info>
+
+## Troubleshooting
+
+### Authorization Fails
+- Ensure you're signed in to the service
+- Check that popup blockers aren't preventing OAuth
+- Try disconnecting and reconnecting
+- Clear app cache and retry
+
+### Actions Still Failing After Reconnect
+- Verify permissions were fully granted
+- Check workspace/team selection is correct
+- Ensure service account is active
+- Contact support if issues persist
+
+### Toolkit Not Appearing
+- Pull to refresh the toolkits list
+- Check if already connected
+- Ensure you have a stable internet connection
+- Restart the app if needed
+
+### Can't Find Specific Toolkit
+- Check the Available section
+- Search for the service name
+- Contact support to request new integrations
+- Some toolkits may be in beta
+
+## Best Practices
+
+### Start Small
+- Connect 2-3 essential toolkits initially
+- Learn how Echo uses each integration
+- Gradually add more as you become comfortable
+
+### Review Regularly
+- Check connection status monthly
+- Reauthorize expired toolkits promptly
+- Remove unused integrations
+
+### Configure Thoughtfully
+- Set sensible defaults for your workflow
+- Choose workspaces/teams carefully
+- Test with low-risk actions first
+
+### Monitor Actions
+- Review proposed actions from new toolkits closely
+- Provide feedback through modify/reject
+- Adjust configuration based on action quality
+
+## Next Steps
+
+- [Managing Actions](/mobile/managing-actions) - Work with toolkit-powered actions
+- [Settings](/mobile/settings) - Adjust global preferences
+- [Managing Thoughts](/mobile/managing-thoughts) - Provide context for better actions

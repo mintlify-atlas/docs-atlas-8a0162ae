@@ -1,0 +1,111 @@
+---
+title: "Get Toolkit"
+description: "Retrieve details for a specific toolkit connection"
+---
+
+## Endpoint
+
+```
+GET /api/toolkits/:id
+```
+
+## Authentication
+
+This endpoint requires authentication. The API automatically verifies that the authenticated user owns the requested toolkit connection.
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The connected account ID (not the auth config ID). This is the unique identifier returned when listing toolkits or creating a new connection.
+</ParamField>
+
+## Response
+
+<ResponseField name="toolkit" type="object">
+  The toolkit connection object
+  
+  <Expandable title="ToolkitConnection properties">
+    <ResponseField name="id" type="string">
+      Connected account ID from Composio
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string">
+      Toolkit identifier (e.g., `github`, `gmail`, `slack`)
+    </ResponseField>
+    
+    <ResponseField name="connectionStatus" type="string">
+      Current status: `connected`, `disconnected`, `pending`, or `expired`
+    </ResponseField>
+    
+    <ResponseField name="enabled" type="boolean">
+      Whether the toolkit is enabled for use by Echo
+    </ResponseField>
+    
+    <ResponseField name="scopes" type="array">
+      OAuth scopes granted for this connection (may not always be available)
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the connection was created
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the connection was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+### Request
+
+```bash
+curl -X GET 'https://api.echo.ai/api/toolkits/acc_abc123xyz' \
+  -H 'Cookie: session=your-session-token'
+```
+
+### Response
+
+```json
+{
+  "toolkit": {
+    "id": "acc_abc123xyz",
+    "slug": "github",
+    "connectionStatus": "connected",
+    "enabled": true,
+    "scopes": ["repo", "user", "read:org"],
+    "createdAt": "2026-01-15T10:30:00.000Z",
+    "updatedAt": "2026-02-01T08:15:00.000Z"
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Error type identifier
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable error message
+</ResponseField>
+
+### 404 Not Found
+
+Returned when the toolkit doesn't exist or the authenticated user doesn't have access to it.
+
+```json
+{
+  "error": "Not Found",
+  "message": "Toolkit not found or you are not authorized"
+}
+```
+
+### 500 Internal Server Error
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Failed to fetch toolkit"
+}
+```

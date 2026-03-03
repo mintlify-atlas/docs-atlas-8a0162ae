@@ -1,0 +1,491 @@
+---
+title: "Integrations"
+description: "Configure Composio, Supermemory, and AI providers for Echo's intelligent features"
+---
+
+Echo integrates with multiple external services to provide intelligent automation, memory management, and AI capabilities.
+
+## Overview
+
+Key integrations:
+
+- **Composio** - Tool integrations and OAuth management (Gmail, Calendar, Drive, etc.)
+- **Supermemory** - Distributed memory and intelligent recall
+- **AI Providers** - OpenAI, Google Gemini, or Anthropic Claude for agent reasoning
+- **Expo Push Notifications** - Real-time mobile notifications
+
+## Composio Integration
+
+Composio provides access to 100+ tools and handles OAuth flows for third-party services.
+
+### Setup
+
+<Steps>
+  <Step title="Get API key">
+    Sign up at [composio.dev](https://composio.dev) and create an API key from the dashboard.
+  </Step>
+
+  <Step title="Configure environment">
+    ```env
+    COMPOSIO_API_KEY=your-composio-api-key
+    COMPOSIO_WEBHOOK_SECRET=your-webhook-secret
+    COMPOSIO_CALLBACK_URL=http://localhost:8000/api/toolkits/oauth/callback
+    FRONTEND_URL=http://localhost:5173
+    ```
+  </Step>
+
+  <Step title="Set up webhook endpoint">
+    Configure webhook URL in Composio dashboard:
+    ```
+    http://your-server.com/api/triggers/webhook
+    ```
+    <Info>
+      The webhook endpoint receives trigger events from connected integrations.
+    </Info>
+  </Step>
+</Steps>
+
+### Client Initialization
+
+```typescript src/services/composio/client.ts
+import { Composio } from "@composio/core";
+import { VercelProvider } from "@composio/vercel";
+
+if (!process.env.COMPOSIO_API_KEY) {
+  throw new Error("COMPOSIO_API_KEY environment variable is required");
+}
+
+export const composio = new Composio({
+  apiKey: process.env.COMPOSIO_API_KEY,
+  provider: new VercelProvider(),
+});
+```
+
+### OAuth Flow
+
+Composio handles OAuth authentication for third-party tools:
+
+```typescript src/services/composio/toolkits.ts
+export async function initiateToolkitOAuthFlow(
+  userId: string,
+  toolkitSlug: string,
+  scopes: string[],
+  req: Request,
+  platform: 'mobile' | 'web' = 'web'
+): Promise<{ authConfigId: string; redirectUrl: string }> {
+  // 1. Create auth config with scopes
+  const authConfigId = await createAuthConfig(toolkitSlug, scopes);
+
+  // 2. Generate secure OAuth token
+  const oauthToken = createOAuthToken(userId);
+  
+  // 3. Build callback URL
+  const callbackUrl = `${process.env.COMPOSIO_CALLBACK_URL}?toolkitSlug=${toolkitSlug}&token=${oauthToken}&platform=${platform}`;
+
+  // 4. Initiate OAuth flow
+  const connection = await initiateConnection(
+    userId,
+    authConfigId,
+    callbackUrl
+  );
+
+  return {
+    authConfigId,
+    redirectUrl: connection.redirectUrl,
+  };
+}
+```
+
+### Available Toolkits
+
+Echo supports toolkits for:
+
+- **Gmail** - Email management
+- **Google Calendar** - Event scheduling
+- **Google Drive** - File management
+- **Google Docs** - Document editing
+- **Google Sheets** - Spreadsheet operations
+- **Google Slides** - Presentation creation
+- **Notion** - Workspace management
+- **GitHub** - Repository operations
+- **Slack** - Team communication
+
+### Toolkit Management API
+
+```typescript
+import { getUserToolkits, toggleToolkitEnabled, disconnectToolkit } from "./services/composio/toolkits.js";
+
+// List user's connected toolkits
+const toolkits = await getUserToolkits(userId, "connected");
+
+// Enable/disable toolkit
+await toggleToolkitEnabled(accountId, true);
+
+// Disconnect toolkit
+await disconnectToolkit(accountId, userId, true);
+```
+
+---
+
+## Supermemory Integration
+
+Supermemory provides intelligent memory storage and retrieval for user-saved items.
+
+### Setup
+
+<Steps>
+  <Step title="Get API key">
+    Sign up at [supermemory.ai](https://supermemory.ai) and get your API key.
+  </Step>
+
+  <Step title="Configure environment">
+    ```env
+    SUPERMEMORY_API_KEY=sm_your_api_key
+    ```
+  </Step>
+</Steps>
+
+### Client Usage
+
+```typescript src/services/supermemory.ts
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+export async function addItemToMemory(userId: string, item: any) {
+  try {
+    let content = item.url || '';
+    if (item.title) content = `Title: ${item.title}\n\n${content}`;
+    if (item.note) content = `${content}\n\nNotes: ${item.note}`;
+
+    const metadata: Record<string, string | string[]> = {
+      itemId: item.id,
+      userId: userId,
+      type: item.url?.startsWith('http') ? 'url' : 'note',
+    };
+    if (item.title) metadata.title = item.title;
+    if (item.tags?.length) metadata.tags = item.tags;
+
+    const memory = await client.memories.add({
+      content,
+      containerTag: `user_${userId}`,
+      metadata,
+    });
+
+    console.log(`[Supermemory] Added memory ${memory.id}`);
+    return memory.id;
+  } catch (error) {
+    console.error('[Supermemory] Add error:', error);
+    return null;
+  }
+}
+```
+
+### Memory Operations
+
+<CodeGroup>
+```typescript Add Memory
+export async function addItemToMemory(userId: string, item: any) {
+  const memory = await client.memories.add({
+    content: item.url,
+    containerTag: `user_${userId}`,
+    metadata: {
+      itemId: item.id,
+      title: item.title,
+      tags: item.tags,
+    },
+  });
+  return memory.id;
+}
+```
+
+```typescript Update Memory
+export async function updateItemInMemory(memoryId: string, item: any) {
+  await client.memories.update(memoryId, {
+    content: item.url,
+    metadata: {
+      updatedAt: new Date().toISOString(),
+      title: item.title,
+    },
+  });
+  return true;
+}
+```
+
+```typescript Delete Memory
+export async function deleteItemFromMemory(memoryId: string) {
+  await client.memories.delete(memoryId);
+  console.log(`[Supermemory] Deleted memory ${memoryId}`);
+  return true;
+}
+```
+</CodeGroup>
+
+### Automatic Sync
+
+Items are automatically synced to Supermemory when created/updated:
+
+```typescript
+// In items route
+const [newItem] = await db.insert(items).values(itemData).returning();
+
+// Sync to Supermemory
+const supermemoryId = await addItemToMemory(userId, newItem);
+
+if (supermemoryId) {
+  await db.update(items)
+    .set({ supermemoryId })
+    .where(eq(items.id, newItem.id));
+}
+```
+
+---
+
+## AI Provider Integration
+
+Echo supports multiple AI providers for agent reasoning.
+
+### Configuration
+
+Choose your AI provider:
+
+```env
+# Select provider
+AI_MODEL_PROVIDER=openai  # Options: openai, google, anthropic
+
+# Provide corresponding API key
+OPENAI_API_KEY=sk-...
+# GOOGLE_GENERATIVE_AI_API_KEY=your-key
+# ANTHROPIC_API_KEY=your-key
+```
+
+### OpenAI
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [...],
+  tools: composioTools,
+});
+```
+
+### Google Gemini
+
+```typescript
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-2.0-flash-exp'),
+  messages: [...],
+  tools: composioTools,
+});
+```
+
+### Anthropic Claude
+
+```typescript
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  messages: [...],
+  tools: composioTools,
+});
+```
+
+### Dynamic Model Selection
+
+The backend dynamically selects the AI provider based on `AI_MODEL_PROVIDER`:
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
+import { anthropic } from '@ai-sdk/anthropic';
+
+const provider = process.env.AI_MODEL_PROVIDER || 'openai';
+
+const modelMap = {
+  openai: openai('gpt-4o'),
+  google: google('gemini-2.0-flash-exp'),
+  anthropic: anthropic('claude-3-5-sonnet-20241022'),
+};
+
+const model = modelMap[provider];
+```
+
+---
+
+## Expo Push Notifications
+
+Send real-time notifications to mobile devices.
+
+### Setup
+
+Expo push notifications require device tokens registered via the `/api/push-tokens` endpoint.
+
+### Sending Notifications
+
+```typescript src/services/notifications/expo.ts
+import { Expo } from 'expo-server-sdk';
+
+const expo = new Expo();
+
+export async function sendPushNotification(
+  tokens: string[],
+  title: string,
+  body: string,
+  data?: object
+) {
+  const messages = tokens
+    .filter(token => Expo.isExpoPushToken(token))
+    .map(token => ({
+      to: token,
+      sound: 'default',
+      title,
+      body,
+      data,
+    }));
+
+  const chunks = expo.chunkPushNotifications(messages);
+  
+  for (const chunk of chunks) {
+    try {
+      const receipts = await expo.sendPushNotificationsAsync(chunk);
+      console.log('Push notifications sent:', receipts);
+    } catch (error) {
+      console.error('Push notification error:', error);
+    }
+  }
+}
+```
+
+### Registering Tokens
+
+Clients register device tokens:
+
+```typescript
+POST /api/push-tokens
+Authorization: Bearer {token}
+
+{
+  "expo_push_token": "ExponentPushToken[...]",
+  "platform": "ios",
+  "device_id": "device_123"
+}
+```
+
+---
+
+## Webhooks
+
+Composio sends webhook events for triggers (e.g., new email, calendar event).
+
+### Webhook Endpoint
+
+```typescript src/routes/triggers.ts
+router.post("/webhook", async (req, res) => {
+  // Verify signature
+  const signature = req.headers['x-composio-signature'];
+  const isValid = verifyWebhookSignature(
+    req.body,
+    signature,
+    process.env.COMPOSIO_WEBHOOK_SECRET
+  );
+
+  if (!isValid) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+
+  // Process trigger event
+  const event = req.body;
+  await processTriggerEvent(event);
+
+  res.json({ success: true });
+});
+```
+
+### Webhook Security
+
+<Warning>
+  Always verify webhook signatures using `COMPOSIO_WEBHOOK_SECRET` to prevent unauthorized requests.
+</Warning>
+
+```typescript
+import crypto from 'crypto';
+
+function verifyWebhookSignature(
+  payload: Buffer,
+  signature: string,
+  secret: string
+): boolean {
+  const hash = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  
+  return hash === signature;
+}
+```
+
+---
+
+## Integration Testing
+
+### Test Supermemory
+
+```bash
+pnpm test-memory
+```
+
+This script tests adding, updating, and deleting memories.
+
+### Test Composio
+
+Use the API to test OAuth flows:
+
+```bash
+curl -X POST http://localhost:8000/api/toolkits/gmail/connect \
+  -H "Authorization: Bearer {token}" \
+  -d '{"scopes": ["gmail.readonly"]}'
+```
+
+### Test AI Provider
+
+Run a chat request to verify AI integration:
+
+```bash
+curl -X POST http://localhost:8000/api/chat \
+  -H "Authorization: Bearer {token}" \
+  -d '{"message": "What is the weather today?"}'
+```
+
+---
+
+## Environment Variables Summary
+
+| Service | Variables | Required |
+|---------|-----------|----------|
+| **Composio** | `COMPOSIO_API_KEY`<br/>`COMPOSIO_WEBHOOK_SECRET`<br/>`COMPOSIO_CALLBACK_URL` | Yes<br/>Recommended<br/>Optional |
+| **Supermemory** | `SUPERMEMORY_API_KEY` | Yes |
+| **OpenAI** | `OPENAI_API_KEY`<br/>`AI_MODEL_PROVIDER=openai` | Yes<br/>Yes |
+| **Google** | `GOOGLE_GENERATIVE_AI_API_KEY`<br/>`AI_MODEL_PROVIDER=google` | Yes<br/>Yes |
+| **Anthropic** | `ANTHROPIC_API_KEY`<br/>`AI_MODEL_PROVIDER=anthropic` | Yes<br/>Yes |
+| **OAuth** | `FRONTEND_URL` | Optional |
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="code" href="/api/authentication">
+    Explore all API endpoints
+  </Card>
+  <Card title="Database Schema" icon="database" href="/backend/database-schema">
+    Understand data models for integrations
+  </Card>
+</CardGroup>

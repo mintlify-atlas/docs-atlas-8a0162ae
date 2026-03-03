@@ -1,0 +1,217 @@
+---
+title: "Update Item"
+description: "Update an existing thought item"
+---
+
+## Endpoint
+
+<ParamField path="method" type="string">
+  PUT
+</ParamField>
+
+<ParamField path="url" type="string">
+  `/api/items/:id`
+</ParamField>
+
+## Authentication
+
+This endpoint requires authentication. Include a valid Bearer token in the Authorization header.
+
+```bash
+Authorization: Bearer <your_access_token>
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  UUID of the item to update
+</ParamField>
+
+## Request Body
+
+All fields are optional. Only provide the fields you want to update.
+
+<ParamField body="url" type="string">
+  The URL of the item. Must be a valid URL format.
+</ParamField>
+
+<ParamField body="title" type="string">
+  Title for the item. Can be set to null.
+</ParamField>
+
+<ParamField body="note" type="string">
+  Note or description for the item. Can be set to null.
+</ParamField>
+
+<ParamField body="tags" type="array">
+  Array of tag strings to categorize the item.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Item status. Possible values: `active`, `archived`
+</ParamField>
+
+<ParamField body="is_read" type="boolean">
+  Whether the item has been read.
+</ParamField>
+
+<ParamField body="og_image" type="string">
+  Open Graph image URL. Must be a valid URL format if provided. Can be set to null.
+</ParamField>
+
+<ParamField body="og_description" type="string">
+  Open Graph description. Can be set to null.
+</ParamField>
+
+## Response
+
+<ResponseField name="item" type="object">
+  The updated item object
+  
+  <Expandable title="item properties">
+    <ResponseField name="id" type="string">
+      UUID of the item
+    </ResponseField>
+    
+    <ResponseField name="userId" type="string">
+      UUID of the user who owns the item
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      The saved URL
+    </ResponseField>
+    
+    <ResponseField name="title" type="string | null">
+      Title of the item
+    </ResponseField>
+    
+    <ResponseField name="note" type="string | null">
+      Note or description
+    </ResponseField>
+    
+    <ResponseField name="tags" type="array">
+      Array of tag strings
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Item status: "active" or "archived"
+    </ResponseField>
+    
+    <ResponseField name="isRead" type="boolean">
+      Whether the item has been read
+    </ResponseField>
+    
+    <ResponseField name="ogImage" type="string | null">
+      Open Graph image URL
+    </ResponseField>
+    
+    <ResponseField name="ogDescription" type="string | null">
+      Open Graph description
+    </ResponseField>
+    
+    <ResponseField name="supermemoryId" type="string | null">
+      ID of the item in Supermemory service
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of creation
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp of last update (automatically updated)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X PUT https://api.echo.app/api/items/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Article Title",
+    "note": "I finished reading this",
+    "is_read": true,
+    "tags": ["reading", "tech", "completed"]
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "item": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "userId": "123e4567-e89b-12d3-a456-426614174000",
+    "url": "https://example.com/article",
+    "title": "Updated Article Title",
+    "note": "I finished reading this",
+    "tags": ["reading", "tech", "completed"],
+    "status": "active",
+    "isRead": true,
+    "ogImage": "https://example.com/image.jpg",
+    "ogDescription": "A fascinating article about technology",
+    "supermemoryId": "mem_abc123def456",
+    "createdAt": "2026-03-03T10:30:00.000Z",
+    "updatedAt": "2026-03-03T14:45:00.000Z"
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request" type="object">
+  Returned when validation fails
+  
+  <Expandable title="error response">
+    <ResponseField name="error" type="string">
+      "Bad Request"
+    </ResponseField>
+    
+    <ResponseField name="message" type="string">
+      Detailed validation error message
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="401 Unauthorized" type="object">
+  Returned when authentication fails
+</ResponseField>
+
+<ResponseField name="404 Not Found" type="object">
+  Returned when the item doesn't exist or the user doesn't have permission to update it
+  
+  <Expandable title="error response">
+    <ResponseField name="error" type="string">
+      "Not Found"
+    </ResponseField>
+    
+    <ResponseField name="message" type="string">
+      "Item not found or you don't have permission to update it"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error" type="object">
+  Returned when server encounters an error
+  
+  <Expandable title="error response">
+    <ResponseField name="error" type="string">
+      "Internal Server Error"
+    </ResponseField>
+    
+    <ResponseField name="message" type="string">
+      Error message
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Notes
+
+- Updates are automatically synced to Supermemory if the item has a supermemoryId
+- The `updatedAt` timestamp is automatically set to the current time
+- Only provide fields you want to update; unchanged fields retain their original values
+- Users can only update their own items
+- Setting a field to null will clear its value (for nullable fields)
+- Status can be changed between "active" and "archived" to organize items

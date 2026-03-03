@@ -1,0 +1,408 @@
+---
+title: Architecture
+description: Understand Echo's system design, data flow, and how triggers become executed actions
+---
+
+Echo is designed as a proactive AI assistant that listens to events from connected apps, analyzes context, and executes multi-step workflows. This page explains the system architecture and data flow.
+
+## System overview
+
+<img src="/images/flow-diagram.png" alt="Echo Architecture Flow Diagram" />
+
+## Architecture components
+
+Echo consists of four primary layers:
+
+### 1. Mobile app (React Native)
+
+The frontend mobile application built with React Native and Expo:
+
+- **Authentication**: Supabase Auth for user sign-up and sign-in
+- **State Management**: Zustand for local UI and auth state, TanStack Query for server data
+- **UI Components**: NativeWind (Tailwind CSS) for styling
+- **Push Notifications**: Expo Notifications for real-time action proposals
+- **Deep Linking**: OAuth callback handling via custom URL scheme (`echo://`)
+
+**Key screens**:
+- **Home**: View pending, ongoing, and completed actions
+- **Thoughts**: Manage saved links, notes, and memories
+- **Toolkits**: Connect and manage app integrations
+- **Settings**: Configure automation posture and notification preferences
+
+### 2. Backend API (Node.js + Express)
+
+The backend server handles:
+
+- **REST APIs** for CRUD operations on profiles, actions, items, and toolkits
+- **Webhook receiver** for incoming trigger events from Composio
+- **Trigger processing** via AI agent orchestration
+- **Push notification delivery** to mobile devices
+
+**API Routes** (see backend/src/app.ts:49):
+```typescript
+app.use("/api/profiles", profilesRouter);
+app.use("/api/action-logs", actionLogsRouter);
+app.use("/api/toolkits", toolkitsRouter);
+app.use("/api/items", itemsRouter);
+app.use("/api/triggers", triggersRouter);
+app.use("/api/push-tokens", pushTokensRouter);
+```
+
+### 3. Database (PostgreSQL via Supabase)
+
+PostgreSQL database with Row-Level Security (RLS) policies:
+
+**Core tables** (see backend/src/db/schema/schema.ts):
+
+- **profiles**: User profiles, automation posture, onboarding state, notification preferences
+- **action_logs**: Audit trail of all actions with status, metadata, and conversation history
+- **items**: User's saved Thoughts (links, notes, screenshots) synced with Supermemory
+- **user_push_tokens**: Device tokens for Expo push notifications
+- **collections**: User-created collections to organize Thoughts
+
+**Action log metadata** (backend/src/db/schema/schema.ts:237):
+```typescript
+metadata: jsonb("metadata").$type<{
+  actionParams?: Record<string, unknown>;
+  error?: { message?: string; code?: string; };
+  agentReasoning?: Record<string, unknown>;
+  sessionId?: string; // Composio session for multi-turn
+  proposedAction?: string; // AI summary for notifications
+  conversationHistory?: Array<{
+    role: "user" | "assistant";
+    content: string;
+    executionTrace?: { /* tool calls, reasoning */ };
+  }>;
+}>()
+```
+
+### 4. External services
+
+- **Composio**: OAuth management, toolkit integrations, webhook triggers, AI agent execution
+- **Supermemory**: Long-term memory storage for Thoughts (enables semantic search and context retrieval)
+- **AI Providers**: OpenAI GPT-4, Google Gemini, or Anthropic Claude for action reasoning
+- **Supabase Auth**: User authentication and session management
+
+## Data flow: From trigger to execution
+
+Here's how Echo processes a trigger event end-to-end:
+
+<Steps>
+  <Step title="Event occurs in connected app">
+    A user's connected app (e.g., Google Calendar) generates an event:
+    - New calendar event created
+    - Email received
+    - File uploaded to Drive
+    - Task marked complete
+  </Step>
+
+  <Step title="Composio sends webhook to backend">
+    Composio triggers webhook to `/api/triggers/webhook` with:
+    
+    ```json
+    {
+      "userId": "uuid",
+      "connectedAccountId": "composio-account-id",
+      "triggerName": "GOOGLECALENDAR_NEW_EVENT",
+      "payload": { /* event data */ }
+    }
+    ```
+    
+    The webhook handler (backend/src/routes/triggers.ts) verifies the signature and validates the payload.
+  </Step>
+
+  <Step title="Trigger processor analyzes context">
+    The `processTriggerEvent` function (backend/src/services/composio/triggerProcessor.ts:160) orchestrates:
+    
+    1. **Fetch user's automation posture** from profiles table:
+       - `ask_first`: Propose action and wait for approval
+       - `auto_execute`: Execute immediately
+    
+    2. **Get connected toolkits** to enable cross-app actions
+    
+    3. **Build AI prompt** with event data, toolkit context, and mode:
+    
+    ```typescript
+    const { systemPrompt, userPrompt } = buildMasterPrompt({
+      eventType: "GOOGLECALENDAR_NEW_EVENT",
+      eventData: payload,
+      toolkitSlug: "googlecalendar",
+      connectedToolkits: ["googlecalendar", "gmail", "googledrive"],
+      autoExecute: false // ask_first mode
+    });
+    ```
+    
+    4. **Execute Composio AI chat** with all connected toolkits
+  </Step>
+
+  <Step title="AI agent reasons and proposes action">
+    The AI agent:
+    - Analyzes the event data
+    - Uses read-only toolkit operations to gather context (check calendar for conflicts, scan emails, etc.)
+    - Retrieves relevant Thoughts from Supermemory for personalization
+    - Generates a proposed action with reasoning
+    
+    **Example reasoning** (backend/src/services/composio/triggerProcessor.ts:76):
+    ```typescript
+    conversationHistory: [
+      { role: "user", content: "Event: Team Sync at 2 PM tomorrow" },
+      { 
+        role: "assistant", 
+        content: "I checked your calendar and found no conflicts...",
+        executionTrace: {
+          toolkitsUsed: ["googlecalendar"],
+          steps: [
+            { reasoning: "Checking for calendar conflicts", toolCalls: [...] },
+            { reasoning: "No conflicts found, proposing RSVP", toolCalls: [...] }
+          ]
+        }
+      }
+    ]
+    ```
+  </Step>
+
+  <Step title="Action log created in database">
+    Backend creates an action log with status `pending`:
+    
+    ```typescript
+    {
+      userId: "uuid",
+      actionName: "RSVP to Team Sync",
+      status: "pending",
+      requestType: "trigger",
+      triggerSource: "googlecalendar",
+      toolkitsUsed: ["googlecalendar"],
+      metadata: {
+        proposedAction: "Check availability and RSVP as Yes",
+        conversationHistory: [...],
+        sessionId: "composio-session-id"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Push notification sent to user">
+    If user has automation posture set to `ask_first`:
+    
+    1. Backend fetches user's push tokens from `user_push_tokens`
+    2. Sends Expo push notification with action summary:
+       ```json
+       {
+         "to": "ExponentPushToken[...]",
+         "title": "New action proposed",
+         "body": "Check availability and RSVP as Yes",
+         "data": { "actionLogId": "uuid" }
+       }
+       ```
+    3. User taps notification to open action detail screen
+  </Step>
+
+  <Step title="User approves or modifies action">
+    User can:
+    - **Approve**: Sends `"approve"` to backend
+    - **Modify**: Sends feedback like "Also add a reminder 10 minutes before"
+    - **Reject**: Marks action as `cancelled`
+    
+    Mobile app calls `POST /api/action-logs/:id/respond` with user's decision.
+  </Step>
+
+  <Step title="Backend continues conversation">
+    The `continueTriggerConversation` function (backend/src/services/composio/triggerProcessor.ts:249) handles the user's response:
+    
+    ```typescript
+    const userPrompt = userResponse === "approve"
+      ? "Go ahead and execute the action. You are now in AUTO-EXECUTE mode."
+      : `User feedback: "${userResponse}". Adjust and execute.`;
+    
+    // Continue AI chat with conversation history
+    const aiResult = await executeComposioChat({
+      userId,
+      systemPrompt,
+      userPrompt,
+      toolkits: connectedToolkits,
+      conversationHistory // Full context from previous turns
+    });
+    ```
+  </Step>
+
+  <Step title="AI agent executes action">
+    In `auto_execute` mode, the AI agent:
+    - Calls toolkit operations (e.g., `googlecalendar_update_event`)
+    - Executes multi-step workflows across apps
+    - Handles errors and retries
+    - Records execution trace
+    
+    **Execution trace** (backend/src/services/composio/triggerProcessor.ts:70):
+    ```typescript
+    executionTrace: {
+      toolkitsUsed: ["googlecalendar"],
+      steps: [
+        {
+          stepNumber: 1,
+          reasoning: "Updating RSVP status",
+          toolCalls: [{
+            toolName: "googlecalendar_update_event",
+            toolkitSlug: "googlecalendar",
+            input: { eventId: "...", status: "accepted" },
+            output: { success: true }
+          }]
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Action log updated with results">
+    Backend updates the action log:
+    - **Status**: `completed` (or `failed` if error)
+    - **Metadata**: Appends final assistant message with execution trace
+    - **Updated timestamp**: Current time
+    
+    Mobile app refetches action logs via TanStack Query and displays results.
+  </Step>
+</Steps>
+
+## Key design patterns
+
+### Multi-turn conversation state
+
+Echo maintains conversation history in the `action_logs.metadata.conversationHistory` field, enabling:
+- **Context preservation** across user interactions
+- **Refinement loops** where users can modify proposed actions
+- **Execution traces** attached to each assistant response
+
+### Automation posture modes
+
+Users choose their preferred level of automation:
+
+| Mode | Behavior |
+|------|----------|
+| **ask_first** | AI proposes actions, waits for approval, then executes |
+| **auto_execute** | AI executes actions immediately and reports results |
+
+### Cross-app context gathering
+
+When processing triggers, Echo has access to **all connected toolkits**, not just the source:
+
+```typescript
+// backend/src/services/composio/triggerProcessor.ts:173
+const connectedToolkits = await getUserToolkits(userId, "connected");
+const toolkitSlugs = connectedToolkits.map(t => t.slug);
+// ["googlecalendar", "gmail", "googledrive", "todoist"]
+
+// AI agent can read from all toolkits to gather context
+// Example: Check emails for meeting context, scan Drive for related docs
+```
+
+### Toolkit-specific system prompts
+
+Echo uses specialized prompts per toolkit to improve action quality:
+
+```typescript
+// backend/src/utils/prompts.ts
+export function getToolkitSystemPrompt(toolkitSlug: string): string {
+  const specificPrompts = {
+    googlecalendar: "You are a calendar management expert...",
+    gmail: "You are an email triage assistant...",
+    todoist: "You are a task management specialist..."
+  };
+  return specificPrompts[toolkitSlug] || ECHO_SYSTEM_PROMPT;
+}
+```
+
+### Webhook signature verification
+
+All incoming webhooks are verified using Composio's signature:
+
+```typescript
+// backend/src/routes/triggers.ts
+app.use(
+  "/api/triggers/webhook",
+  express.raw({ type: "application/json" })
+);
+
+// Verify signature before processing
+const isValid = verifyWebhookSignature(
+  req.body,
+  req.headers["x-composio-signature"],
+  process.env.COMPOSIO_WEBHOOK_SECRET
+);
+```
+
+## State management
+
+### Frontend state (React Native)
+
+- **Zustand**: Local UI state and auth tokens
+  - `authStore`: User session, access tokens
+  - `settingsStore`: Theme, preferences
+
+- **TanStack Query**: Server state with automatic caching
+  - `useActionLogs()`: Fetch and cache action logs
+  - `useToolkits()`: Fetch connected toolkits
+  - `useItems()`: Fetch user's Thoughts
+
+### Backend state (PostgreSQL)
+
+All persistent state is stored in PostgreSQL with Row-Level Security (RLS) policies ensuring users can only access their own data.
+
+## Security considerations
+
+<Warning>
+Never commit `.env` files to version control. All API keys and secrets should be stored securely.
+</Warning>
+
+- **OAuth tokens**: Stored by Composio, never exposed to backend
+- **Webhook signatures**: Verified using HMAC-SHA256
+- **Database RLS**: Enforces user-level data isolation
+- **Supabase Auth**: JWT-based authentication with short-lived tokens
+- **Push tokens**: Stored with device metadata for targeted delivery
+
+## Performance optimizations
+
+### Parallel toolkit fetching
+
+When enriching toolkits with metadata:
+
+```typescript
+// backend/src/routes/toolkits.ts:138
+const enrichedToolkits = await Promise.all(
+  toolkits.map(tk => enrichToolkitWithMetadata(tk))
+);
+```
+
+### Database indexing
+
+Key indexes for query performance (backend/src/db/schema/schema.ts:288):
+
+```typescript
+index("user_logs_idx").on(
+  table.userId,
+  table.status,
+  table.createdAt.desc()
+)
+```
+
+### Lazy loading execution traces
+
+Execution traces are stored in JSONB and only fetched when viewing action details, reducing payload size on list views.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Core Concepts" icon="book" href="/concepts/actions">
+    Learn about Actions, Thoughts, Toolkits, and Triggers in depth
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/authentication">
+    Explore the REST API endpoints for custom integrations
+  </Card>
+  
+  <Card title="Backend Setup" icon="server" href="/backend/setup">
+    Set up the Echo backend server
+  </Card>
+  
+  <Card title="Mobile App" icon="mobile" href="/mobile/setup">
+    Deploy Echo to production environments
+  </Card>
+</CardGroup>
